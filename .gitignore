@@ -1,0 +1,15 @@
+node_modules/
+vendor/
+.next/
+out/
+tmp/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+Thumbs.db
+
+# aset referensi besar (tidak ikut repo)
+Design System Part 1.pdf
+design system/
