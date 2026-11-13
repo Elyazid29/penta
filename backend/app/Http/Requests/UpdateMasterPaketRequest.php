@@ -23,7 +23,6 @@ class UpdateMasterPaketRequest extends FormRequest
             'satuan' => ['nullable', 'string', 'max:30'],
             'catatan' => ['nullable', 'string'],
             'items' => ['required', 'array', 'min:1'],
-            'items.*.barang_id' => ['nullable', 'exists:master_barangs,id'],
             'items.*.nama_item' => ['required', 'string', 'max:255'],
             'items.*.qty' => ['required', 'numeric', 'gt:0'],
             'items.*.satuan' => ['nullable', 'string', 'max:30'],

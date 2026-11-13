@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\MasterBarang;
 use App\Models\MasterPaket;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -13,32 +12,24 @@ class MasterPaketApiTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_valid_payload_persists_package_and_its_barang_items(): void
+    public function test_valid_payload_persists_package_with_standalone_items(): void
     {
         Sanctum::actingAs(User::factory()->create());
-        $barang = MasterBarang::query()->create([
-            'kode_barang' => 'CAM-001',
-            'nama_barang' => 'Kamera Studio',
-            'kategori' => 'Camera',
-            'jumlah_total' => 4,
-            'jumlah_rusak' => 0,
-            'di_sewa' => 0,
-            'harga_rental' => 150000,
-        ]);
 
         $response = $this->postJson('/api/v1/master-paket', [
             'kode_paket' => 'PKT-001',
             'nama_paket' => 'Paket Studio',
             'kategori' => 'Produksi',
             'harga_paket' => 500000,
-            'items' => [['barang_id' => $barang->id, 'qty' => 2]],
+            'items' => [['nama_item' => 'Kamera Studio', 'qty' => 2, 'satuan' => 'unit', 'harga' => 150000]],
         ]);
 
         $response->assertCreated()->assertJsonPath('data.nama_paket', 'Paket Studio');
         $paket = MasterPaket::query()->where('kode_paket', 'PKT-001')->firstOrFail();
         $this->assertDatabaseHas('master_paket_items', [
             'paket_id' => $paket->id,
-            'barang_id' => $barang->id,
+            'barang_id' => null,
+            'nama_item' => 'Kamera Studio',
             'qty' => 2,
         ]);
     }

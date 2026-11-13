@@ -75,14 +75,13 @@ const CATEGORY_DEFAULT_SATUAN: Record<string, string> = {
 };
 
 type PackageItemRow = {
-  barang_id: string;
   nama_item: string;
   qty: number;
   satuan: string;
   harga: number;
 };
 
-const emptyPackageRow = (): PackageItemRow => ({ barang_id: "", nama_item: "", qty: 1, satuan: "unit", harga: 0 });
+const emptyPackageRow = (): PackageItemRow => ({ nama_item: "", qty: 1, satuan: "unit", harga: 0 });
 
 
 
@@ -199,7 +198,6 @@ export default function App() {
   
   // Data states
   const [items, setItems] = useState<MasterItem[]>([]);
-  const [barangsList, setBarangsList] = useState<MasterItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
@@ -401,12 +399,6 @@ export default function App() {
       const payload = await res.json();
       if (!res.ok) throw new Error("Gagal mengambil data dari server.");
       setItems(resourceData<MasterItem>(payload));
-
-      if (dbTab === "barang" && barangSubTab === "paket") {
-        const bRes = await request("master-barang?per_page=100");
-        const bPayload = await bRes.json();
-        setBarangsList(resourceData<MasterItem>(bPayload));
-      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Terjadi kesalahan koneksi.");
     } finally {
@@ -748,7 +740,6 @@ export default function App() {
         });
         const itemsArr = Array.isArray(item.items) ? (item.items as Record<string, unknown>[]) : [];
         const mapped: PackageItemRow[] = itemsArr.map((i) => ({
-          barang_id: i.barang_id ? String(i.barang_id) : "",
           nama_item: String(i.nama_item || ""),
           qty: Number(i.qty || 1),
           satuan: String(i.satuan || "unit"),
@@ -826,14 +817,13 @@ export default function App() {
     } else {
       const payload: Record<string, unknown> = { ...form };
       if (dbTab === "barang" && barangSubTab === "paket") {
-        const rows = packageItems.filter((row) => row.barang_id !== "" || row.nama_item.trim() !== "");
+        const rows = packageItems.filter((row) => row.nama_item.trim() !== "");
         if (rows.length === 0) {
           setError("Isi minimal satu baris barang atau spesifikasi untuk paket.");
           setBusy(false);
           return;
         }
         payload.items = rows.map((row, idx) => ({
-          barang_id: row.barang_id ? Number(row.barang_id) : null,
           nama_item: row.nama_item.trim() || "Item paket",
           qty: Number(row.qty || 1),
           satuan: row.satuan || "unit",
@@ -2162,28 +2152,17 @@ export default function App() {
                       {packageItems.map((row, idx) => (
                         <div key={idx} className="space-y-1.5 rounded-lg border border-slate-200 bg-slate-50 p-2">
                           <div className="flex items-center gap-1.5">
-                            <select
-                              value={row.barang_id}
+                            <input
+                              type="text"
+                              value={row.nama_item}
                               onChange={(e) => {
-                                const selected = barangsList.find((b) => String(b.id) === e.target.value);
                                 const copy = [...packageItems];
-                                copy[idx] = {
-                                  ...copy[idx],
-                                  barang_id: e.target.value,
-                                  nama_item: selected ? valueOf(selected, "nama_barang") : copy[idx].nama_item,
-                                  harga: selected ? Number(selected.harga_rental || 0) : copy[idx].harga,
-                                };
+                                copy[idx] = { ...copy[idx], nama_item: e.target.value };
                                 setPackageItems(copy);
                               }}
+                              placeholder="Nama barang paket (bebas, tidak dari satuan)"
                               className="flex-1 rounded border border-slate-200 bg-white px-2.5 py-1 text-[11px] outline-none focus:border-blue-600"
-                            >
-                              <option value="">-- Barang bebas / jasa (tanpa stok) --</option>
-                              {barangsList.map((b) => (
-                                <option key={b.id} value={String(b.id)}>
-                                  {valueOf(b, "nama_barang")} ({valueOf(b, "kode_barang")})
-                                </option>
-                              ))}
-                            </select>
+                            />
                             <button
                               type="button"
                               onClick={() => {
@@ -2198,18 +2177,7 @@ export default function App() {
                               {idx === packageItems.length - 1 ? "+" : "-"}
                             </button>
                           </div>
-                          <div className="grid grid-cols-[minmax(0,1fr)_70px_90px_110px] gap-1.5">
-                            <input
-                              type="text"
-                              value={row.nama_item}
-                              onChange={(e) => {
-                                const copy = [...packageItems];
-                                copy[idx] = { ...copy[idx], nama_item: e.target.value };
-                                setPackageItems(copy);
-                              }}
-                              placeholder="Spesifikasi / nama item"
-                              className="rounded border border-slate-200 bg-white px-2.5 py-1 text-[11px] outline-none focus:border-blue-600"
-                            />
+                          <div className="grid grid-cols-[70px_90px_110px] gap-1.5">
                             <input
                               type="number"
                               min={0.01}

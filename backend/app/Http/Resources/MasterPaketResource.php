@@ -19,13 +19,11 @@ class MasterPaketResource extends JsonResource
             'satuan' => $this->satuan,
             'catatan' => $this->catatan,
             'items' => $this->whenLoaded('items', fn (): array => $this->items->map(fn ($item): array => [
-                'barang_id' => $item->barang_id,
-                'nama_item' => $item->nama_item ?? $item->barang?->nama_barang,
+                'nama_item' => $item->nama_item,
                 'qty' => $item->qty,
                 'satuan' => $item->satuan,
                 'harga' => $item->harga,
                 'urutan' => $item->urutan,
-                'barang' => $item->barang,
             ])->all()),
         ];
     }
