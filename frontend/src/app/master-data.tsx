@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
+import { compressImage } from "./compress-image";
 import { 
   LayoutDashboard, 
   Database, 
@@ -240,6 +241,8 @@ export default function App() {
   const [deliveryTeknisiIds, setDeliveryTeknisiIds] = useState<number[]>([]);
   const [deliveryTeknisiSearch, setDeliveryTeknisiSearch] = useState("");
   const [deliverySearch, setDeliverySearch] = useState("");
+  const [photoHistory, setPhotoHistory] = useState<Array<Record<string, unknown>>>([]);
+  const [photoHistoryNote, setPhotoHistoryNote] = useState("");
   const [deliveryItems, setDeliveryItems] = useState<Array<{ barang_id: string; nama_item: string; qty: number; status_check: string }>>([]);
   const [deliveryForm, setDeliveryForm] = useState({ nomor_surat_jalan: `SJ-${new Date().toISOString().slice(0, 10).replaceAll("-", "")}-001`, form_order_id: "", tanggal_berangkat: "", status: "Draft", catatan: "" });
   const [schedules, setSchedules] = useState<MasterItem[]>([]);
@@ -371,6 +374,19 @@ export default function App() {
     headers.set("Authorization", `Bearer ${token}`);
     headers.set("Accept", "application/json");
     return fetch(`${API_BASE}/v1/${path}`, { ...init, headers });
+  }
+
+  async function openPhotoHistory(note: MasterItem): Promise<void> {
+    setError("");
+    try {
+      const res = await request(`surat-jalan/${note.id}/photos`);
+      if (!res.ok) throw new Error("Gagal mengambil riwayat foto.");
+      const payload = await res.json();
+      setPhotoHistory(resourceData<Record<string, unknown>>(payload));
+      setPhotoHistoryNote(valueOf(note, "nomor_surat_jalan"));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Gagal mengambil riwayat foto.");
+    }
   }
 
   async function loadDatabaseData(): Promise<void> {
@@ -1083,7 +1099,11 @@ export default function App() {
                       type="file"
                       accept="image/*"
                       capture="environment"
-                      onChange={(e) => setTechnicianDeliveryForm({ ...technicianDeliveryForm, foto: e.target.files?.[0] || null })}
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        const foto = file ? await compressImage(file) : null;
+                        setTechnicianDeliveryForm((prev) => ({ ...prev, foto }));
+                      }}
                       className="hidden"
                       id="foto-input"
                     />
@@ -1273,7 +1293,11 @@ export default function App() {
                       type="file"
                       accept="image/*"
                       capture="environment"
-                      onChange={(e) => setAdditionalItemForm({ ...additionalItemForm, foto: e.target.files?.[0] || null })}
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        const foto = file ? await compressImage(file) : null;
+                        setAdditionalItemForm((prev) => ({ ...prev, foto }));
+                      }}
                       className="hidden"
                       id="foto-additional-input"
                     />
@@ -1338,7 +1362,11 @@ export default function App() {
                       type="file"
                       accept="image/*"
                       capture="environment"
-                      onChange={(e) => setTechnicianDeliveryForm({ ...technicianDeliveryForm, foto: e.target.files?.[0] || null })}
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        const foto = file ? await compressImage(file) : null;
+                        setTechnicianDeliveryForm((prev) => ({ ...prev, foto }));
+                      }}
                       className="hidden"
                       id="foto-checkin-input"
                     />
@@ -1884,7 +1912,7 @@ export default function App() {
               <div><h2 className="text-xl font-bold text-slate-900">Surat Jalan</h2><p className="mt-1 text-sm text-slate-500">Terbitkan surat jalan dan pantau check-out/check-in barang.</p></div>
               {notice && <div className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">{notice}</div>}{error && <div className="rounded-lg bg-red-50 p-3 text-sm text-red-800">{error}</div>}
               <form onSubmit={saveDelivery} className="space-y-5 rounded-xl border border-slate-200 bg-white p-6 shadow-sm"><div className="grid gap-4 md:grid-cols-3"><label>Nomor Surat Jalan<input required value={deliveryForm.nomor_surat_jalan} onChange={(e) => setDeliveryForm({ ...deliveryForm, nomor_surat_jalan: e.target.value })} className="mt-1 w-full rounded border p-2" /></label><label>Form Order<select required value={deliveryForm.form_order_id} onChange={(e) => { const selected = deliveryOrders.find((order) => String(order.id) === e.target.value); const orderItems = Array.isArray(selected?.items) ? (selected.items as Array<Record<string, unknown>>) : []; setDeliveryForm({ ...deliveryForm, form_order_id: e.target.value }); setDeliveryItems(orderItems.map((item) => ({ barang_id: item.barang_id ? String(item.barang_id) : "", nama_item: String(item.nama_item || ""), qty: Number(item.qty || 1), status_check: String(item.status_check || "Belum Check-out") }))); }} className="mt-1 w-full rounded border p-2"><option value="">Pilih order</option>{deliveryOrders.map((order) => <option key={order.id} value={order.id}>{valueOf(order, "nomor_order")} — {valueOf(order, "nama_event")}</option>)}</select></label><label>Tanggal Berangkat<input required type="datetime-local" value={deliveryForm.tanggal_berangkat} onChange={(e) => setDeliveryForm({ ...deliveryForm, tanggal_berangkat: e.target.value })} className="mt-1 w-full rounded border p-2" /></label><label>Status<select value={deliveryForm.status} onChange={(e) => setDeliveryForm({ ...deliveryForm, status: e.target.value })} className="mt-1 w-full rounded border p-2"><option>Draft</option><option>Berangkat</option><option>Selesai</option><option>Dibatalkan</option></select></label></div><div className="space-y-3"><h3 className="font-semibold">Daftar Barang <span className="text-xs font-normal text-slate-500">— otomatis dari Form Order</span></h3>{deliveryItems.length === 0 && <p className="text-sm text-slate-500">Pilih Form Order dulu — daftar barang akan terisi otomatis.</p>}{deliveryItems.map((item, index) => <div key={index} className="grid gap-3 md:grid-cols-12"><div className="rounded bg-slate-50 px-3 py-2 md:col-span-7">{item.nama_item}</div><label className="flex items-center gap-2 text-sm md:col-span-3">Qty<input required type="number" min="1" value={item.qty} onChange={(e) => setDeliveryItems(deliveryItems.map((row, i) => i === index ? { ...row, qty: Number(e.target.value) } : row))} className="w-20 rounded border p-2" /></label><button type="button" onClick={() => setDeliveryItems(deliveryItems.filter((_, i) => i !== index))} className="text-red-600 md:col-span-2">Hapus</button></div>)}</div><div className="space-y-2"><h3 className="font-semibold">Teknisi Bertugas <span className="text-xs font-normal text-slate-500">— bisa pilih lebih dari satu</span></h3><p className="text-xs text-slate-500">Kosongkan bila belum ditentukan — semua teknisi tetap boleh checkout.{deliveryTeknisiIds.length > 0 && ` Dipilih: ${deliveryTeknisiIds.length} teknisi.`}</p><p className="text-xs text-slate-400">Akun login teknisi diisi di Database → Karyawan (Email Login + Password), supaya bisa scan surat jalan.</p><input type="text" value={deliveryTeknisiSearch} onChange={(e) => setDeliveryTeknisiSearch(e.target.value)} placeholder="Cari nama teknisi..." className="w-full rounded border border-slate-300 px-3 py-2 text-sm md:max-w-xs" /><div className="grid gap-2 md:grid-cols-3">{deliveryTeknisiOptions.length === 0 ? <p className="text-sm text-slate-500">Belum ada karyawan dengan jabatan Teknisi. Tambahkan di menu Database → Karyawan.</p> : deliveryTeknisiOptions.filter((teknisi) => teknisi.name.toLowerCase().includes(deliveryTeknisiSearch.toLowerCase())).length === 0 ? <p className="text-sm text-slate-500">Tidak ada teknisi yang cocok dengan pencarian.</p> : deliveryTeknisiOptions.filter((teknisi) => teknisi.name.toLowerCase().includes(deliveryTeknisiSearch.toLowerCase())).map((teknisi) => <label key={teknisi.id} className="flex items-center gap-2 rounded border p-2 text-sm"><input type="checkbox" checked={deliveryTeknisiIds.includes(teknisi.id)} onChange={(e) => setDeliveryTeknisiIds(e.target.checked ? [...deliveryTeknisiIds, teknisi.id] : deliveryTeknisiIds.filter((id) => id !== teknisi.id))} />{teknisi.name}</label>)}</div></div><textarea placeholder="Catatan" value={deliveryForm.catatan} onChange={(e) => setDeliveryForm({ ...deliveryForm, catatan: e.target.value })} className="w-full rounded border p-2" /><button disabled={busy} className="rounded bg-blue-600 px-5 py-2 font-semibold text-white">{busy ? "Menyimpan..." : "Simpan Surat Jalan"}</button></form>
-              <div className="space-y-3"><input type="text" value={deliverySearch} onChange={(e) => setDeliverySearch(e.target.value)} placeholder="Cari nomor surat jalan, order, atau teknisi..." className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm md:max-w-md" /><div className="overflow-auto rounded-xl bg-white shadow"><table className="w-full text-left text-sm"><thead className="bg-[#002480] text-white"><tr><th className="p-3">Nomor</th><th className="p-3">Order</th><th className="p-3">Tanggal</th><th className="p-3">Teknisi</th><th className="p-3">Item</th><th className="p-3">Status</th></tr></thead><tbody className="divide-y">{deliveryNotes.filter((note) => { const teknisiNames = Array.isArray(note.teknisi) ? (note.teknisi as Array<Record<string, unknown>>).map((teknisi) => String(teknisi.name)).join(" ") : ""; const haystack = [valueOf(note, "nomor_surat_jalan"), String((note.order as Record<string, unknown> | undefined)?.nomor_order || ""), valueOf(note, "status"), teknisiNames].join(" ").toLowerCase(); return haystack.includes(deliverySearch.toLowerCase()); }).map((note) => <tr key={note.id}><td className="p-3">{valueOf(note, "nomor_surat_jalan")}</td><td className="p-3">{String((note.order as Record<string, unknown> | undefined)?.nomor_order || "-")}</td><td className="p-3">{valueOf(note, "tanggal_berangkat")}</td><td className="p-3">{Array.isArray(note.teknisi) && note.teknisi.length > 0 ? (note.teknisi as Array<Record<string, unknown>>).map((teknisi) => String(teknisi.name)).join(", ") : <span className="text-slate-400">Semua teknisi</span>}</td><td className="p-3">{Array.isArray(note.items) ? note.items.length : 0} barang</td><td className="p-3">{valueOf(note, "status")}</td></tr>)}</tbody></table></div></div>
+              <div className="space-y-3"><input type="text" value={deliverySearch} onChange={(e) => setDeliverySearch(e.target.value)} placeholder="Cari nomor surat jalan, order, atau teknisi..." className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm md:max-w-md" />{photoHistoryNote && <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"><div className="mb-3 flex items-center justify-between"><h3 className="font-semibold text-slate-900">Riwayat foto — {photoHistoryNote}</h3><button type="button" onClick={() => { setPhotoHistoryNote(""); setPhotoHistory([]); }} className="text-sm text-slate-500 hover:text-slate-800">Tutup</button></div>{photoHistory.length === 0 ? <p className="text-sm text-slate-500">Belum ada foto checkout/checkin.</p> : <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{photoHistory.map((photo) => <div key={String(photo.id)} className="rounded-lg border border-slate-200 p-2"><a href={String(photo.foto_url || "#")} target="_blank" rel="noreferrer"><img src={String(photo.foto_thumb_url || photo.foto_url || "")} alt={String(photo.tipe || "Foto")} className="h-40 w-full rounded object-cover" /></a><p className="mt-2 text-xs font-semibold uppercase text-slate-700">{String(photo.tipe || "")}</p><p className="text-xs text-slate-500">{String(photo.created_at || "")} · {String(photo.user || "-")}</p>{photo.catatan ? <p className="mt-1 text-xs text-slate-600">{String(photo.catatan)}</p> : null}</div>)}</div>}</div>}<div className="overflow-auto rounded-xl bg-white shadow"><table className="w-full text-left text-sm"><thead className="bg-[#002480] text-white"><tr><th className="p-3">Nomor</th><th className="p-3">Order</th><th className="p-3">Tanggal</th><th className="p-3">Teknisi</th><th className="p-3">Item</th><th className="p-3">Status</th><th className="p-3">Foto</th></tr></thead><tbody className="divide-y">{deliveryNotes.filter((note) => { const teknisiNames = Array.isArray(note.teknisi) ? (note.teknisi as Array<Record<string, unknown>>).map((teknisi) => String(teknisi.name)).join(" ") : ""; const haystack = [valueOf(note, "nomor_surat_jalan"), String((note.order as Record<string, unknown> | undefined)?.nomor_order || ""), valueOf(note, "status"), teknisiNames].join(" ").toLowerCase(); return haystack.includes(deliverySearch.toLowerCase()); }).map((note) => <tr key={note.id}><td className="p-3">{valueOf(note, "nomor_surat_jalan")}</td><td className="p-3">{String((note.order as Record<string, unknown> | undefined)?.nomor_order || "-")}</td><td className="p-3">{valueOf(note, "tanggal_berangkat")}</td><td className="p-3">{Array.isArray(note.teknisi) && note.teknisi.length > 0 ? (note.teknisi as Array<Record<string, unknown>>).map((teknisi) => String(teknisi.name)).join(", ") : <span className="text-slate-400">Semua teknisi</span>}</td><td className="p-3">{Array.isArray(note.items) ? note.items.length : 0} barang</td><td className="p-3">{valueOf(note, "status")}</td><td className="p-3"><button type="button" onClick={() => openPhotoHistory(note)} className="rounded border border-blue-200 px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-50">Lihat</button></td></tr>)}</tbody></table></div></div>
             </section>
           )}
           {activeMenu === "FORM PENAWARAN" && (

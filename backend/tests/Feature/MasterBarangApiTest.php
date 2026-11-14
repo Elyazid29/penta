@@ -64,7 +64,7 @@ class MasterBarangApiTest extends TestCase
         ]);
 
         $response->assertOk()->assertJsonPath('data.nama_barang', 'Nama Diperbarui');
-        $this->assertDatabaseHas('master_barang', [
+        $this->assertDatabaseHas('master_barangs', [
             'id' => $barang->id,
             'jumlah_total' => 8,
             'foto_path' => 'barang/existing.jpg',

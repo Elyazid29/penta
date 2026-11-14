@@ -6,9 +6,11 @@ tmp/
 .env
 .env.*
 !.env.example
+!.env.production.example
 *.log
 .DS_Store
 Thumbs.db
+backups/
 
 # aset referensi besar (tidak ikut repo)
 Design System Part 1.pdf

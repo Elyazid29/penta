@@ -9,6 +9,7 @@ use App\Models\SuratJalan;
 use App\Services\PhotoStorage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class DeliveryCheckController extends Controller
 {
@@ -118,6 +119,34 @@ class DeliveryCheckController extends Controller
         }
 
         return response()->json(['data' => $deliveryPhoto->load('checklists')], 201);
+    }
+
+    /**
+     * Riwayat foto checkout/checkin untuk satu surat jalan.
+     */
+    public function photos(SuratJalan $suratJalan): JsonResponse
+    {
+        $photos = $suratJalan->photos()
+            ->with(['checklists', 'user:id,name'])
+            ->latest()
+            ->get();
+
+        return response()->json(['data' => $photos->map(fn (DeliveryPhoto $photo): array => [
+            'id' => $photo->id,
+            'tipe' => $photo->tipe,
+            'catatan' => $photo->catatan,
+            'user' => $photo->user?->name,
+            'foto_url' => $photo->foto_path ? Storage::disk('public')->url($photo->foto_path) : null,
+            'foto_thumb_url' => $photo->foto_thumb_path ? Storage::disk('public')->url($photo->foto_thumb_path) : null,
+            'created_at' => $photo->created_at?->toIso8601String(),
+            'checklists' => $photo->checklists->map(fn ($item): array => [
+                'id' => $item->id,
+                'nama_barang' => $item->nama_barang,
+                'qty' => $item->qty,
+                'status_fisik' => $item->status_fisik,
+                'keterangan' => $item->keterangan,
+            ])->all(),
+        ])->all()]);
     }
 
     /**

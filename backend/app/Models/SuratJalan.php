@@ -25,4 +25,9 @@ class SuratJalan extends Model
     {
         return $this->belongsToMany(MasterKaryawan::class, 'surat_jalan_teknisi', 'surat_jalan_id', 'karyawan_id')->withTimestamps();
     }
+
+    public function photos(): HasMany
+    {
+        return $this->hasMany(DeliveryPhoto::class);
+    }
 }

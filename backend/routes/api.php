@@ -39,8 +39,6 @@ Route::apiResource('v1/master-klien', MasterKlienController::class)->middleware(
 
 Route::apiResource('v1/master-armada', MasterArmadaController::class)->middleware('auth:sanctum');
 
-Route::apiResource('v1/master-perusahaan', MasterPerusahaanController::class)->middleware('auth:sanctum');
-
 Route::apiResource('v1/form-order', FormOrderController::class)->middleware('auth:sanctum');
 
 Route::apiResource('v1/form-penawaran', FormPenawaranController::class)->middleware('auth:sanctum');
@@ -72,6 +70,7 @@ Route::middleware(['auth:sanctum', 'check.role:admin,owner'])->prefix('v1')->gro
 // Teknisi (Mobile)
 Route::middleware(['auth:sanctum', 'check.role:teknisi,admin,owner'])->prefix('v1')->group(function (): void {
     Route::post('delivery/scan-surat-jalan', [DeliveryCheckController::class, 'scanSuratJalan']);
+    Route::get('surat-jalan/{suratJalan}/photos', [DeliveryCheckController::class, 'photos']);
     Route::post('delivery/checkout', [DeliveryCheckController::class, 'checkout']);
     Route::post('delivery/checkin', [DeliveryCheckController::class, 'checkin']);
     Route::post('delivery-additional-items', [AdditionalItemController::class, 'store']);

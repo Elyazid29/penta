@@ -31,7 +31,7 @@ class MasterKlienApiTest extends TestCase
         ]);
 
         $response->assertCreated()->assertJsonPath('data.contacts.0.nama', 'Budi');
-        $this->assertDatabaseHas('master_klien', [
+        $this->assertDatabaseHas('master_kliens', [
             'nama_klien' => 'PT Contoh',
             'cp1_nama' => 'Budi',
             'cp2_nama' => 'Sari',

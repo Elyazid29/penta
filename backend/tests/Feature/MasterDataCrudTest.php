@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
@@ -32,12 +33,13 @@ class MasterDataCrudTest extends TestCase
         ])->assertOk()->assertJsonPath('data.status_operasional', 'Jalan');
 
         $this->deleteJson('/api/v1/master-armada/'.$created['id'])->assertNoContent();
-        $this->assertDatabaseMissing('master_armada', ['id' => $created['id']]);
+        $this->assertDatabaseMissing('master_armadas', ['id' => $created['id']]);
     }
 
     public function test_user_can_create_update_and_delete_perusahaan(): void
     {
-        Sanctum::actingAs(User::factory()->create());
+        $ownerRole = Role::query()->where('name', 'owner')->firstOrFail();
+        Sanctum::actingAs(User::factory()->create(['role_id' => $ownerRole->id]));
 
         $created = $this->postJson('/api/v1/master-perusahaan', [
             'nama_perusahaan' => 'Penta Tri Saka',
@@ -57,6 +59,6 @@ class MasterDataCrudTest extends TestCase
         ])->assertOk()->assertJsonPath('data.nama_perusahaan', 'Penta Tri Saka Indonesia');
 
         $this->deleteJson('/api/v1/master-perusahaan/'.$created['id'])->assertNoContent();
-        $this->assertDatabaseMissing('master_perusahaan', ['id' => $created['id']]);
+        $this->assertDatabaseMissing('master_perusahaans', ['id' => $created['id']]);
     }
 }
