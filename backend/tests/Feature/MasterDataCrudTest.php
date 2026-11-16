@@ -52,6 +52,24 @@ class MasterDataCrudTest extends TestCase
             ->assertJsonValidationErrors(['jenis_kendaraan', 'plat_nomor', 'status_stnk', 'status_operasional']);
     }
 
+    public function test_master_armada_rejects_duplicate_plat_nomor(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+        $this->postJson('/api/v1/master-armada', [
+            'jenis_kendaraan' => 'Mobil Box',
+            'plat_nomor' => 'B 9999 DUP',
+            'status_stnk' => 'Aktif',
+            'status_operasional' => 'Standby',
+        ])->assertCreated();
+
+        $this->postJson('/api/v1/master-armada', [
+            'jenis_kendaraan' => 'Truk',
+            'plat_nomor' => 'B 9999 DUP',
+            'status_stnk' => 'Aktif',
+            'status_operasional' => 'Standby',
+        ])->assertUnprocessable()->assertJsonValidationErrors(['plat_nomor']);
+    }
+
     public function test_user_can_create_update_and_delete_perusahaan(): void
     {
         $ownerRole = Role::query()->where('name', 'owner')->firstOrFail();

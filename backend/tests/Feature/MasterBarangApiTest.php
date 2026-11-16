@@ -120,4 +120,28 @@ class MasterBarangApiTest extends TestCase
         $this->assertDatabaseMissing('master_barangs', ['id' => $barang->id]);
         Storage::disk('public')->assertMissing($path);
     }
+
+    public function test_master_barang_rejects_duplicate_kode(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+        MasterBarang::query()->create([
+            'kode_barang' => 'BRG-DUP',
+            'nama_barang' => 'Barang 1',
+            'kategori' => 'Audio',
+            'jumlah_total' => 1,
+            'jumlah_rusak' => 0,
+            'di_sewa' => 0,
+            'harga_rental' => 1000,
+        ]);
+
+        $this->postJson('/api/v1/master-barang', [
+            'kode_barang' => 'BRG-DUP',
+            'nama_barang' => 'Barang 2',
+            'kategori' => 'Audio',
+            'jumlah_total' => 1,
+            'jumlah_rusak' => 0,
+            'di_sewa' => 0,
+            'harga_rental' => 1000,
+        ])->assertUnprocessable()->assertJsonValidationErrors(['kode_barang']);
+    }
 }

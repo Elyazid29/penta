@@ -72,4 +72,21 @@ class MasterPaketApiTest extends TestCase
         $this->deleteJson('/api/v1/master-paket/'.$paket->id)->assertNoContent();
         $this->assertDatabaseMissing('master_pakets', ['id' => $paket->id]);
     }
+
+    public function test_master_paket_rejects_duplicate_kode(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+        MasterPaket::query()->create([
+            'kode_paket' => 'PKT-DUP',
+            'nama_paket' => 'Paket 1',
+            'harga_paket' => 1000,
+        ]);
+
+        $this->postJson('/api/v1/master-paket', [
+            'kode_paket' => 'PKT-DUP',
+            'nama_paket' => 'Paket 2',
+            'harga_paket' => 2000,
+            'items' => [['nama_item' => 'Item', 'qty' => 1, 'harga' => 2000]],
+        ])->assertUnprocessable()->assertJsonValidationErrors(['kode_paket']);
+    }
 }

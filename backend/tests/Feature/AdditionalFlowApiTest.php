@@ -191,6 +191,32 @@ class AdditionalFlowApiTest extends TestCase
         $this->assertDatabaseMissing('form_penawarans', ['id' => $penawaran->id]);
     }
 
+    public function test_form_penawaran_rejects_duplicate_nomor(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+        $order = $this->makeOrder('ORD-PEN-DUP');
+        FormPenawaran::query()->create([
+            'nomor_penawaran' => 'PEN-DUP-001',
+            'form_order_id' => $order->id,
+            'tanggal_penawaran' => '2026-11-16',
+            'status' => 'Draft',
+            'subtotal' => 0,
+            'diskon' => 0,
+            'pajak' => 0,
+            'total' => 0,
+        ]);
+
+        $this->postJson('/api/v1/form-penawaran', [
+            'nomor_penawaran' => 'PEN-DUP-001',
+            'form_order_id' => $order->id,
+            'tanggal_penawaran' => '2026-11-16',
+            'status' => 'Draft',
+            'diskon' => 0,
+            'pajak' => 0,
+            'items' => [['nama_item' => 'Item', 'qty' => 1, 'harga' => 1000]],
+        ])->assertUnprocessable()->assertJsonValidationErrors(['nomor_penawaran']);
+    }
+
     private function actingAsRole(string $roleName): User
     {
         $role = Role::query()->where('name', $roleName)->firstOrFail();
