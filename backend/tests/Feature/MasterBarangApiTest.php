@@ -77,4 +77,23 @@ class MasterBarangApiTest extends TestCase
 
         $response->assertUnauthorized();
     }
+
+    public function test_master_barang_validation_rejects_invalid_payload(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+
+        $this->postJson('/api/v1/master-barang', [
+            'kode_barang' => 'BRG-BAD',
+            'nama_barang' => 'Barang',
+            'kategori' => 'Audio',
+            'jumlah_total' => 5,
+            'jumlah_rusak' => 6,
+            'di_sewa' => 0,
+            'harga_rental' => -1,
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['jumlah_rusak', 'harga_rental']);
+
+        $this->postJson('/api/v1/master-barang', [])->assertUnprocessable()
+            ->assertJsonValidationErrors(['kode_barang', 'nama_barang', 'kategori', 'jumlah_total', 'jumlah_rusak', 'di_sewa', 'harga_rental']);
+    }
 }

@@ -39,4 +39,24 @@ class MasterKlienApiTest extends TestCase
         ]);
         $this->assertSame(1, MasterKlien::query()->where('nama_klien', 'PT Contoh')->count());
     }
+
+    public function test_master_klien_can_be_updated_deleted_and_validated(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+        $klien = MasterKlien::query()->create(['nama_klien' => 'Klien Lama', 'kategori' => 'Personal']);
+
+        $this->putJson('/api/v1/master-klien/'.$klien->id, [
+            'nama_klien' => 'Klien Baru',
+            'nama_perusahaan' => 'PT Baru',
+            'kategori' => 'Corporate',
+        ])->assertOk()->assertJsonPath('data.nama_klien', 'Klien Baru');
+
+        $this->assertDatabaseHas('master_kliens', ['id' => $klien->id, 'nama_klien' => 'Klien Baru', 'kategori' => 'Corporate']);
+
+        $this->postJson('/api/v1/master-klien', [])->assertUnprocessable()
+            ->assertJsonValidationErrors(['nama_klien']);
+
+        $this->deleteJson('/api/v1/master-klien/'.$klien->id)->assertNoContent();
+        $this->assertDatabaseMissing('master_kliens', ['id' => $klien->id]);
+    }
 }
