@@ -388,6 +388,35 @@ class FinanceAndScheduleApiTest extends TestCase
             ->assertJsonValidationErrors(['status']);
     }
 
+    public function test_invoice_rejects_duplicate_nomor(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+        $order = $this->makeOrder();
+        Invoice::query()->create([
+            'nomor_invoice' => 'INV-DUP-001',
+            'form_order_id' => $order->id,
+            'tanggal_invoice' => '2026-11-12',
+            'subtotal' => 1000000,
+            'diskon' => 0,
+            'pajak' => 0,
+            'total' => 1000000,
+            'dibayar' => 0,
+            'status' => 'Unpaid',
+        ]);
+
+        $this->postJson('/api/v1/invoice', [
+            'nomor_invoice' => 'INV-DUP-001',
+            'form_order_id' => $order->id,
+            'tanggal_invoice' => '2026-11-13',
+            'subtotal' => 500000,
+            'diskon' => 0,
+            'pajak' => 0,
+            'total' => 500000,
+            'dibayar' => 0,
+            'status' => 'Unpaid',
+        ])->assertUnprocessable()->assertJsonValidationErrors(['nomor_invoice']);
+    }
+
     public function test_transaksi_keuangan_validation_rejects_invalid_jenis_and_missing_fields(): void
     {
         Sanctum::actingAs(User::factory()->create());

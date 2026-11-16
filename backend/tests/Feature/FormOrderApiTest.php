@@ -111,4 +111,30 @@ class FormOrderApiTest extends TestCase
         $this->deleteJson('/api/v1/form-order/'.$order->id)->assertNoContent();
         $this->assertDatabaseMissing('form_orders', ['id' => $order->id]);
     }
+
+    public function test_form_order_rejects_duplicate_nomor_order(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+        $klien = MasterKlien::query()->create(['nama_klien' => 'PT Dup']);
+        FormOrder::query()->create([
+            'nomor_order' => 'ORD-DUP-001',
+            'klien_id' => $klien->id,
+            'nama_event' => 'Event',
+            'venue' => 'Jakarta',
+            'load_in' => '2026-11-20 08:00:00',
+            'load_out' => '2026-11-21 18:00:00',
+            'status' => 'Draft',
+        ]);
+
+        $this->postJson('/api/v1/form-order', [
+            'nomor_order' => 'ORD-DUP-001',
+            'klien_id' => $klien->id,
+            'nama_event' => 'Event 2',
+            'venue' => 'Jakarta',
+            'load_in' => '2026-11-22 08:00:00',
+            'load_out' => '2026-11-23 18:00:00',
+            'status' => 'Draft',
+            'items' => [['nama_item' => 'Item', 'qty' => 1, 'harga_harian' => 1000]],
+        ])->assertUnprocessable()->assertJsonValidationErrors(['nomor_order']);
+    }
 }

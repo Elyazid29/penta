@@ -227,6 +227,25 @@ class SuratJalanAndDeliveryFlowTest extends TestCase
             ->assertJsonValidationErrors(['status', 'teknisi_ids.0']);
     }
 
+    public function test_surat_jalan_rejects_duplicate_nomor(): void
+    {
+        Sanctum::actingAs($this->userWithRole('admin'));
+        $order = $this->makeOrderWithItems();
+        SuratJalan::query()->create([
+            'nomor_surat_jalan' => 'SJ-DUP-001',
+            'form_order_id' => $order->id,
+            'tanggal_berangkat' => now(),
+            'status' => 'Draft',
+        ]);
+
+        $this->postJson('/api/v1/surat-jalan', [
+            'nomor_surat_jalan' => 'SJ-DUP-001',
+            'form_order_id' => $order->id,
+            'tanggal_berangkat' => now()->toDateTimeString(),
+            'status' => 'Draft',
+        ])->assertUnprocessable()->assertJsonValidationErrors(['nomor_surat_jalan']);
+    }
+
     private function userWithRole(string $roleName): User
     {
         $role = Role::query()->where('name', $roleName)->firstOrFail();
