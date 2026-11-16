@@ -26,7 +26,7 @@
 - [x] Deteksi konflik jadwal crew/armada (tolak bentrok rentang waktu, abaikan status Dibatalkan)
 - [x] Filter jadwal operasional (status, karyawan, armada, order, rentang waktu)
 - [x] Dukungan penugasan alat (barang) pada jadwal operasional (API + relasi)
-- [ ] Penyempurnaan tampilan matrix penjadwalan crew/armada/alat (UI)
+- [x] Penyempurnaan UI penjadwalan: filter, penugasan alat, dan tampilan terkelompok per tanggal (crew/armada/alat)
 
 ## Fase 3 — Keuangan & Laporan
 - [x] Modul Invoice, transaksi keuangan, dan ringkasan/laporan (termasuk ekspor CSV transaksi) — sesuai implementasi saat ini

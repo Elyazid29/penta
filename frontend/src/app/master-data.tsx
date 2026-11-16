@@ -249,7 +249,10 @@ export default function App() {
   const [scheduleOrders, setScheduleOrders] = useState<MasterItem[]>([]);
   const [scheduleCrew, setScheduleCrew] = useState<MasterItem[]>([]);
   const [scheduleVehicles, setScheduleVehicles] = useState<MasterItem[]>([]);
+  const [scheduleBarangs, setScheduleBarangs] = useState<MasterItem[]>([]);
   const [scheduleForm, setScheduleForm] = useState({ form_order_id: "", karyawan_id: "", armada_id: "", tanggal_mulai: "", tanggal_selesai: "", jobdesk: "", status: "Terjadwal", catatan: "" });
+  const [scheduleAlats, setScheduleAlats] = useState<Array<{ barang_id: string; qty: number }>>([]);
+  const [scheduleFilters, setScheduleFilters] = useState({ status: "", karyawan_id: "", armada_id: "", form_order_id: "", from: "", to: "" });
   const [invoices, setInvoices] = useState<MasterItem[]>([]);
   const [invoiceOrders, setInvoiceOrders] = useState<MasterItem[]>([]);
   const [invoiceForm, setInvoiceForm] = useState({ nomor_invoice: `INV-${new Date().toISOString().slice(0, 10).replaceAll("-", "")}-001`, form_order_id: "", tanggal_invoice: new Date().toISOString().slice(0, 10), jatuh_tempo: "", subtotal: 0, diskon: 0, pajak: 0, dibayar: 0, status: "Unpaid", catatan: "" });
@@ -511,19 +514,34 @@ export default function App() {
     try { const total = Math.max(0, invoiceForm.subtotal - invoiceForm.diskon + invoiceForm.pajak); const response = await request("invoice", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...invoiceForm, form_order_id: Number(invoiceForm.form_order_id), total }) }); const payload = await response.json(); if (!response.ok) throw new Error(payload?.message || "Gagal menyimpan invoice."); setNotice("Invoice berhasil disimpan."); await loadInvoiceData(); } catch (cause) { setError(cause instanceof Error ? cause.message : "Gagal menyimpan invoice."); } finally { setBusy(false); }
   }
 
-  async function loadScheduleData(): Promise<void> {
+  async function loadScheduleData(filters = scheduleFilters): Promise<void> {
     setLoading(true); setError("");
     try {
-      const [scheduleResponse, ordersResponse, crewResponse, vehicleResponse] = await Promise.all([request("jadwal-operasional?per_page=100"), request("form-order?per_page=100"), request("master-karyawan?per_page=100"), request("master-armada?per_page=100")]);
-      if (![scheduleResponse, ordersResponse, crewResponse, vehicleResponse].every((response) => response.ok)) throw new Error("Gagal memuat jadwal.");
-      const [schedule, orders, crew, vehicles] = await Promise.all([scheduleResponse.json(), ordersResponse.json(), crewResponse.json(), vehicleResponse.json()]);
-      setSchedules(resourceData<MasterItem>(schedule)); setScheduleOrders(resourceData<MasterItem>(orders)); setScheduleCrew(resourceData<MasterItem>(crew)); setScheduleVehicles(resourceData<MasterItem>(vehicles));
+      const params = new URLSearchParams({ per_page: "100" });
+      if (filters.status) params.set("status", filters.status);
+      if (filters.karyawan_id) params.set("karyawan_id", filters.karyawan_id);
+      if (filters.armada_id) params.set("armada_id", filters.armada_id);
+      if (filters.form_order_id) params.set("form_order_id", filters.form_order_id);
+      if (filters.from) params.set("from", filters.from);
+      if (filters.to) params.set("to", filters.to);
+      const [scheduleResponse, ordersResponse, crewResponse, vehicleResponse, barangResponse] = await Promise.all([request(`jadwal-operasional?${params.toString()}`), request("form-order?per_page=100"), request("master-karyawan?per_page=100"), request("master-armada?per_page=100"), request("master-barang?per_page=100")]);
+      if (![scheduleResponse, ordersResponse, crewResponse, vehicleResponse, barangResponse].every((response) => response.ok)) throw new Error("Gagal memuat jadwal.");
+      const [schedule, orders, crew, vehicles, barangs] = await Promise.all([scheduleResponse.json(), ordersResponse.json(), crewResponse.json(), vehicleResponse.json(), barangResponse.json()]);
+      setSchedules(resourceData<MasterItem>(schedule)); setScheduleOrders(resourceData<MasterItem>(orders)); setScheduleCrew(resourceData<MasterItem>(crew)); setScheduleVehicles(resourceData<MasterItem>(vehicles)); setScheduleBarangs(resourceData<MasterItem>(barangs));
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Gagal memuat jadwal."); } finally { setLoading(false); }
   }
 
   async function saveSchedule(e: FormEvent<HTMLFormElement>): Promise<void> {
     e.preventDefault(); if (!scheduleForm.form_order_id || !scheduleForm.tanggal_mulai || !scheduleForm.tanggal_selesai) { setError("Lengkapi order dan waktu jadwal."); return; }
-    setBusy(true); setError(""); try { const response = await request("jadwal-operasional", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...scheduleForm, form_order_id: Number(scheduleForm.form_order_id), karyawan_id: scheduleForm.karyawan_id ? Number(scheduleForm.karyawan_id) : null, armada_id: scheduleForm.armada_id ? Number(scheduleForm.armada_id) : null }) }); const payload = await response.json(); if (!response.ok) throw new Error(payload?.message || "Gagal menyimpan jadwal."); setNotice("Jadwal berhasil disimpan."); await loadScheduleData(); } catch (cause) { setError(cause instanceof Error ? cause.message : "Gagal menyimpan jadwal."); } finally { setBusy(false); }
+    setBusy(true); setError("");
+    try {
+      const response = await request("jadwal-operasional", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...scheduleForm, form_order_id: Number(scheduleForm.form_order_id), karyawan_id: scheduleForm.karyawan_id ? Number(scheduleForm.karyawan_id) : null, armada_id: scheduleForm.armada_id ? Number(scheduleForm.armada_id) : null, alats: scheduleAlats.filter((a) => a.barang_id).map((a) => ({ barang_id: Number(a.barang_id), qty: Math.max(1, Number(a.qty || 1)) })) }) });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload?.message || "Gagal menyimpan jadwal.");
+      setNotice("Jadwal berhasil disimpan.");
+      setScheduleAlats([]);
+      await loadScheduleData();
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Gagal menyimpan jadwal."); } finally { setBusy(false); }
   }
 
   async function loadDeliveryData(): Promise<void> {
@@ -1902,9 +1920,58 @@ export default function App() {
                   <label className="text-sm font-medium text-slate-700 md:col-span-2">Jobdesk<input value={scheduleForm.jobdesk} onChange={(e) => setScheduleForm({ ...scheduleForm, jobdesk: e.target.value })} className="mt-1 w-full rounded border p-2" placeholder="Contoh: Soundman / Driver / Kameramen" /></label>
                   <label className="text-sm font-medium text-slate-700">Catatan<textarea value={scheduleForm.catatan} onChange={(e) => setScheduleForm({ ...scheduleForm, catatan: e.target.value })} className="mt-1 w-full rounded border p-2" /></label>
                 </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between"><h3 className="text-sm font-semibold text-slate-800">Alat / Barang</h3><button type="button" onClick={() => setScheduleAlats([...scheduleAlats, { barang_id: "", qty: 1 }])} className="rounded border border-blue-200 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-50">+ Tambah alat</button></div>
+                  {scheduleAlats.length === 0 && <p className="text-sm text-slate-500">Belum ada alat ditugaskan.</p>}
+                  {scheduleAlats.map((alat, index) => (
+                    <div key={index} className="grid gap-2 md:grid-cols-12">
+                      <select value={alat.barang_id} onChange={(e) => setScheduleAlats(scheduleAlats.map((row, i) => i === index ? { ...row, barang_id: e.target.value } : row))} className="rounded border p-2 md:col-span-8 text-sm"><option value="">Pilih barang</option>{scheduleBarangs.map((b) => <option key={b.id} value={b.id}>{valueOf(b, "nama_barang")} ({valueOf(b, "kode_barang")})</option>)}</select>
+                      <input type="number" min={1} value={alat.qty} onChange={(e) => setScheduleAlats(scheduleAlats.map((row, i) => i === index ? { ...row, qty: Number(e.target.value || 1) } : row))} className="rounded border p-2 md:col-span-3 text-sm" placeholder="Qty" />
+                      <button type="button" onClick={() => setScheduleAlats(scheduleAlats.filter((_, i) => i !== index))} className="text-sm text-red-600 md:col-span-1">Hapus</button>
+                    </div>
+                  ))}
+                </div>
                 <button disabled={busy} className="rounded bg-blue-600 px-5 py-2 font-semibold text-white disabled:opacity-60">{busy ? "Menyimpan..." : "Simpan Jadwal"}</button>
               </form>
-              <div className="overflow-auto rounded-xl border border-slate-200 bg-white shadow-sm"><table className="w-full text-left text-sm"><thead className="bg-[#002480] text-white"><tr><th className="p-3">Event</th><th className="p-3">Crew</th><th className="p-3">Armada</th><th className="p-3">Mulai</th><th className="p-3">Selesai</th><th className="p-3">Status</th></tr></thead><tbody className="divide-y divide-slate-100">{loading ? <tr><td colSpan={6} className="p-6 text-center">Memuat jadwal...</td></tr> : schedules.length === 0 ? <tr><td colSpan={6} className="p-6 text-center text-slate-500">Belum ada jadwal.</td></tr> : schedules.map((schedule) => <tr key={schedule.id}><td className="p-3">{String((schedule.order as Record<string, unknown> | undefined)?.nama_event || "-")}</td><td className="p-3">{String((schedule.karyawan as Record<string, unknown> | undefined)?.nama_lengkap || "-")}</td><td className="p-3">{String((schedule.armada as Record<string, unknown> | undefined)?.plat_nomor || "-")}</td><td className="p-3">{valueOf(schedule, "tanggal_mulai")}</td><td className="p-3">{valueOf(schedule, "tanggal_selesai")}</td><td className="p-3">{valueOf(schedule, "status")}</td></tr>)}</tbody></table></div>
+
+              <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
+                <div className="flex flex-wrap items-end gap-3">
+                  <label className="text-sm font-medium text-slate-700">Status<select value={scheduleFilters.status} onChange={(e) => setScheduleFilters({ ...scheduleFilters, status: e.target.value })} className="mt-1 rounded border p-2 text-sm"><option value="">Semua</option><option>Terjadwal</option><option>Berjalan</option><option>Selesai</option><option>Dibatalkan</option></select></label>
+                  <label className="text-sm font-medium text-slate-700">Crew<select value={scheduleFilters.karyawan_id} onChange={(e) => setScheduleFilters({ ...scheduleFilters, karyawan_id: e.target.value })} className="mt-1 rounded border p-2 text-sm"><option value="">Semua</option>{scheduleCrew.map((c) => <option key={c.id} value={c.id}>{valueOf(c, "nama_lengkap")}</option>)}</select></label>
+                  <label className="text-sm font-medium text-slate-700">Armada<select value={scheduleFilters.armada_id} onChange={(e) => setScheduleFilters({ ...scheduleFilters, armada_id: e.target.value })} className="mt-1 rounded border p-2 text-sm"><option value="">Semua</option>{scheduleVehicles.map((v) => <option key={v.id} value={v.id}>{valueOf(v, "plat_nomor")}</option>)}</select></label>
+                  <label className="text-sm font-medium text-slate-700">Order<select value={scheduleFilters.form_order_id} onChange={(e) => setScheduleFilters({ ...scheduleFilters, form_order_id: e.target.value })} className="mt-1 rounded border p-2 text-sm"><option value="">Semua</option>{scheduleOrders.map((o) => <option key={o.id} value={o.id}>{valueOf(o, "nomor_order")}</option>)}</select></label>
+                  <label className="text-sm font-medium text-slate-700">Dari<input type="datetime-local" value={scheduleFilters.from} onChange={(e) => setScheduleFilters({ ...scheduleFilters, from: e.target.value })} className="mt-1 rounded border p-2 text-sm" /></label>
+                  <label className="text-sm font-medium text-slate-700">Sampai<input type="datetime-local" value={scheduleFilters.to} onChange={(e) => setScheduleFilters({ ...scheduleFilters, to: e.target.value })} className="mt-1 rounded border p-2 text-sm" /></label>
+                  <button type="button" onClick={() => void loadScheduleData(scheduleFilters)} className="rounded bg-slate-800 px-4 py-2 text-sm font-semibold text-white">Terapkan Filter</button>
+                  <button type="button" onClick={() => { const empty = { status: "", karyawan_id: "", armada_id: "", form_order_id: "", from: "", to: "" }; setScheduleFilters(empty); void loadScheduleData(empty); }} className="rounded border px-4 py-2 text-sm">Reset</button>
+                </div>
+              </div>
+
+              <div className="overflow-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-[#002480] text-white"><tr><th className="p-3">Event / Order</th><th className="p-3">Crew</th><th className="p-3">Armada</th><th className="p-3">Alat</th><th className="p-3">Mulai</th><th className="p-3">Selesai</th><th className="p-3">Status</th></tr></thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {loading ? <tr><td colSpan={7} className="p-6 text-center">Memuat jadwal...</td></tr> : schedules.length === 0 ? <tr><td colSpan={7} className="p-6 text-center text-slate-500">Belum ada jadwal.</td></tr> : Object.entries(schedules.reduce<Record<string, MasterItem[]>>((acc, schedule) => { const key = String(valueOf(schedule, "tanggal_mulai") || "").slice(0, 10) || "Tanpa tanggal"; (acc[key] ||= []).push(schedule); return acc; }, {})).sort(([a], [b]) => a.localeCompare(b)).flatMap(([day, items]) => [
+                      <tr key={`group-${day}`} className="bg-slate-50"><td colSpan={7} className="p-2 font-semibold text-slate-700">Tanggal: {day}</td></tr>,
+                      ...items.map((schedule) => {
+                        const alats = Array.isArray(schedule.alats) ? (schedule.alats as Array<Record<string, unknown>>) : [];
+                        const alatText = alats.length ? alats.map((a) => `${valueOf(a as MasterItem, "nama_barang")} (${String((a.pivot as Record<string, unknown> | undefined)?.qty ?? 1)})`).join(", ") : "-";
+                        return (
+                          <tr key={schedule.id}>
+                            <td className="p-3"><div className="font-medium">{String((schedule.order as Record<string, unknown> | undefined)?.nama_event || "-")}</div><div className="text-xs text-slate-500">{String((schedule.order as Record<string, unknown> | undefined)?.nomor_order || "")}</div></td>
+                            <td className="p-3">{String((schedule.karyawan as Record<string, unknown> | undefined)?.nama_lengkap || "-")}</td>
+                            <td className="p-3">{String((schedule.armada as Record<string, unknown> | undefined)?.plat_nomor || "-")}</td>
+                            <td className="p-3">{alatText}</td>
+                            <td className="p-3">{valueOf(schedule, "tanggal_mulai")}</td>
+                            <td className="p-3">{valueOf(schedule, "tanggal_selesai")}</td>
+                            <td className="p-3">{valueOf(schedule, "status")}</td>
+                          </tr>
+                        );
+                      })
+                    ])}
+                  </tbody>
+                </table>
+              </div>
             </section>
           )}
           {activeMenu === "SURAT JALAN" && (
