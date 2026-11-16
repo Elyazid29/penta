@@ -356,6 +356,87 @@ class FinanceAndScheduleApiTest extends TestCase
             ->assertJsonValidationErrors(['alats.0.barang_id']);
     }
 
+    public function test_invoice_validation_rejects_dibayar_exceeding_total_and_invalid_status(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+        $order = $this->makeOrder();
+
+        $this->postJson('/api/v1/invoice', [
+            'nomor_invoice' => 'INV-BAD-001',
+            'form_order_id' => $order->id,
+            'tanggal_invoice' => '2026-11-12',
+            'subtotal' => 1000000,
+            'diskon' => 0,
+            'pajak' => 0,
+            'total' => 1000000,
+            'dibayar' => 1500000,
+            'status' => 'DP',
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['dibayar']);
+
+        $this->postJson('/api/v1/invoice', [
+            'nomor_invoice' => 'INV-BAD-002',
+            'form_order_id' => $order->id,
+            'tanggal_invoice' => '2026-11-12',
+            'subtotal' => 1000000,
+            'diskon' => 0,
+            'pajak' => 0,
+            'total' => 1000000,
+            'dibayar' => 0,
+            'status' => 'Invalid',
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['status']);
+    }
+
+    public function test_transaksi_keuangan_validation_rejects_invalid_jenis_and_missing_fields(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+
+        $this->postJson('/api/v1/transaksi-keuangan', [
+            'tanggal' => '2026-11-16',
+            'jenis' => 'Lainnya',
+            'kategori' => 'DP',
+            'jumlah' => 1000,
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['jenis']);
+
+        $this->postJson('/api/v1/transaksi-keuangan', [])->assertUnprocessable()
+            ->assertJsonValidationErrors(['tanggal', 'jenis', 'kategori', 'jumlah']);
+    }
+
+    public function test_deleting_transaksi_keuangan_resyncs_invoice_payment(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+        $order = $this->makeOrder();
+        $invoice = Invoice::query()->create([
+            'nomor_invoice' => 'INV-DEL-001',
+            'form_order_id' => $order->id,
+            'tanggal_invoice' => '2026-11-15',
+            'subtotal' => 1000000,
+            'diskon' => 0,
+            'pajak' => 0,
+            'total' => 1000000,
+            'dibayar' => 0,
+            'status' => 'Unpaid',
+        ]);
+
+        $create = $this->postJson('/api/v1/transaksi-keuangan', [
+            'invoice_id' => $invoice->id,
+            'tanggal' => '2026-11-16',
+            'jenis' => 'Pemasukan',
+            'kategori' => 'DP',
+            'jumlah' => 300000,
+        ])->assertCreated();
+        $txId = $create->json('data.id');
+        $this->assertSame('DP', $invoice->refresh()->status);
+
+        $this->deleteJson('/api/v1/transaksi-keuangan/'.$txId)->assertNoContent();
+
+        $invoice->refresh();
+        $this->assertSame('0.00', (string) $invoice->dibayar);
+        $this->assertSame('Unpaid', $invoice->status);
+    }
+
     private function makeOrder(): FormOrder
     {
         $klien = MasterKlien::query()->create(['nama_klien' => 'PT Uji']);
