@@ -24,7 +24,8 @@
 - [x] Aturan akses: tanpa penugasan teknisi → teknisi mana pun boleh; bila ditugaskan → terbatas ke yang ditugaskan/admin/owner
 - [ ] Mode offline checklist & sinkronisasi
 - [x] Deteksi konflik jadwal crew/armada (tolak bentrok rentang waktu, abaikan status Dibatalkan)
-- [ ] Penyempurnaan matrix penjadwalan crew/armada/alat (tampilan matrix, dukungan alat, filter)
+- [x] Filter jadwal operasional (status, karyawan, armada, order, rentang waktu)
+- [ ] Penyempurnaan matrix penjadwalan crew/armada/alat (tampilan matrix, dukungan penugasan alat)
 
 ## Fase 3 — Keuangan & Laporan
 - [x] Modul Invoice, transaksi keuangan, dan ringkasan/laporan (termasuk ekspor CSV transaksi) — sesuai implementasi saat ini
@@ -35,7 +36,7 @@
 - [ ] Ekspor Excel/PDF operasional & keuangan lanjutan
 
 ## Quality & Deployment
-- [x] Feature test API (29 test, 150 assertion lulus per verifikasi terakhir): validasi invoice/transaksi/jadwal/penawaran, finance/schedule, otorisasi & user management, delivery (scan/assignment, checkout/checkin, barang susulan), surat jalan auto-item & invoice otomatis saat selesai, form order create/update, kalkulasi & update penawaran, sinkronisasi pembayaran & overdue (termasuk refresh saat list/laporan), laporan ringkasan (saldo/piutang). Rute duplikat surat-jalan/jadwal dibersihkan (admin/owner).
+- [x] Feature test API (30 test, 156 assertion lulus per verifikasi terakhir): validasi invoice/transaksi/jadwal/penawaran, finance/schedule, otorisasi & user management, delivery (scan/assignment, checkout/checkin, barang susulan), surat jalan auto-item & invoice otomatis saat selesai, form order create/update, kalkulasi & update penawaran, sinkronisasi pembayaran & overdue (termasuk refresh saat list/laporan), laporan ringkasan (saldo/piutang), filter jadwal. Rute duplikat surat-jalan/jadwal dibersihkan (admin/owner).
 - [x] Template env produksi (`backend/.env.production.example`, `frontend/.env.production.example`), CORS env-driven
 - [x] Script backup database (`scripts/dump-db.ps1`, `scripts/dump-db.sh`)
 - [x] Panduan deploy & post-deploy checklist (`docs/DEPLOYMENT.md`)

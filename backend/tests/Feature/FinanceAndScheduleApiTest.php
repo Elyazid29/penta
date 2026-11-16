@@ -205,6 +205,40 @@ class FinanceAndScheduleApiTest extends TestCase
             ->assertJsonPath('message', 'Jadwal bentrok: armada sudah digunakan pada rentang waktu tersebut.');
     }
 
+    public function test_jadwal_operasional_index_supports_filters(): void
+    {
+        $adminRole = Role::query()->where('name', 'admin')->firstOrFail();
+        Sanctum::actingAs(User::factory()->create(['role_id' => $adminRole->id]));
+        $order = $this->makeOrder();
+        $karyawan = MasterKaryawan::query()->create(['nama_lengkap' => 'Teknisi B', 'status' => 'Aktif']);
+
+        JadwalOperasional::query()->create([
+            'form_order_id' => $order->id,
+            'karyawan_id' => $karyawan->id,
+            'tanggal_mulai' => '2026-11-20 08:00:00',
+            'tanggal_selesai' => '2026-11-20 10:00:00',
+            'status' => 'Terjadwal',
+        ]);
+        JadwalOperasional::query()->create([
+            'form_order_id' => $order->id,
+            'tanggal_mulai' => '2026-11-25 08:00:00',
+            'tanggal_selesai' => '2026-11-25 10:00:00',
+            'status' => 'Selesai',
+        ]);
+
+        $this->getJson('/api/v1/jadwal-operasional?karyawan_id='.$karyawan->id)
+            ->assertOk()
+            ->assertJsonCount(1, 'data.data');
+
+        $this->getJson('/api/v1/jadwal-operasional?status=Selesai')
+            ->assertOk()
+            ->assertJsonCount(1, 'data.data');
+
+        $this->getJson('/api/v1/jadwal-operasional?from=2026-11-19&to=2026-11-21')
+            ->assertOk()
+            ->assertJsonCount(1, 'data.data');
+    }
+
     private function makeOrder(): FormOrder
     {
         $klien = MasterKlien::query()->create(['nama_klien' => 'PT Uji']);

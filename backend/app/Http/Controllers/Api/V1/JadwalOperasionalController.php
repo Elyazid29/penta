@@ -7,12 +7,30 @@ use App\Http\Requests\StoreJadwalOperasionalRequest;
 use App\Http\Requests\UpdateJadwalOperasionalRequest;
 use App\Models\JadwalOperasional;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class JadwalOperasionalController extends Controller
 {
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        return response()->json(['data' => JadwalOperasional::with(['order', 'karyawan', 'armada'])->latest('tanggal_mulai')->paginate()]);
+        $query = JadwalOperasional::with(['order', 'karyawan', 'armada'])->latest('tanggal_mulai');
+
+        $query->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')));
+        $query->when($request->filled('karyawan_id'), fn ($q) => $q->where('karyawan_id', $request->integer('karyawan_id')));
+        $query->when($request->filled('armada_id'), fn ($q) => $q->where('armada_id', $request->integer('armada_id')));
+        $query->when($request->filled('form_order_id'), fn ($q) => $q->where('form_order_id', $request->integer('form_order_id')));
+
+        $from = $request->input('from');
+        $to = $request->input('to');
+        if ($from && $to) {
+            $query->where('tanggal_mulai', '<=', $to)->where('tanggal_selesai', '>=', $from);
+        } elseif ($from) {
+            $query->where('tanggal_selesai', '>=', $from);
+        } elseif ($to) {
+            $query->where('tanggal_mulai', '<=', $to);
+        }
+
+        return response()->json(['data' => $query->paginate()]);
     }
 
     public function store(StoreJadwalOperasionalRequest $request): JsonResponse
