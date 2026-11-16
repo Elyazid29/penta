@@ -181,6 +181,52 @@ class SuratJalanAndDeliveryFlowTest extends TestCase
         $this->assertSame(1, Invoice::query()->where('form_order_id', $order->id)->count());
     }
 
+    public function test_admin_can_create_surat_jalan_with_explicit_items_teknisi_and_delete(): void
+    {
+        Sanctum::actingAs($this->userWithRole('admin'));
+        $order = $this->makeOrderWithItems();
+        $karyawan = MasterKaryawan::query()->create([
+            'nama_lengkap' => 'Teknisi Manual',
+            'jabatan' => 'Teknisi',
+            'status' => 'Aktif',
+        ]);
+
+        $response = $this->postJson('/api/v1/surat-jalan', [
+            'nomor_surat_jalan' => 'SJ-MANUAL-001',
+            'form_order_id' => $order->id,
+            'tanggal_berangkat' => '2026-11-15 08:00:00',
+            'status' => 'Draft',
+            'items' => [
+                ['nama_item' => 'Kabel Power', 'qty' => 3, 'status_check' => 'Belum Check-out'],
+            ],
+            'teknisi_ids' => [$karyawan->id],
+        ]);
+
+        $response->assertCreated();
+        $suratJalan = SuratJalan::query()->where('nomor_surat_jalan', 'SJ-MANUAL-001')->firstOrFail();
+        $this->assertDatabaseHas('surat_jalan_items', ['surat_jalan_id' => $suratJalan->id, 'nama_item' => 'Kabel Power', 'qty' => 3]);
+        $this->assertDatabaseMissing('surat_jalan_items', ['surat_jalan_id' => $suratJalan->id, 'nama_item' => 'Speaker Aktif']);
+        $this->assertDatabaseHas('surat_jalan_teknisi', ['surat_jalan_id' => $suratJalan->id, 'karyawan_id' => $karyawan->id]);
+
+        $this->deleteJson('/api/v1/surat-jalan/'.$suratJalan->id)->assertNoContent();
+        $this->assertDatabaseMissing('surat_jalans', ['id' => $suratJalan->id]);
+    }
+
+    public function test_surat_jalan_validation_rejects_invalid_payload(): void
+    {
+        Sanctum::actingAs($this->userWithRole('admin'));
+        $order = $this->makeOrderWithItems();
+
+        $this->postJson('/api/v1/surat-jalan', [
+            'nomor_surat_jalan' => 'SJ-BAD',
+            'form_order_id' => $order->id,
+            'tanggal_berangkat' => '2026-11-15 08:00:00',
+            'status' => 'Invalid',
+            'teknisi_ids' => [999999],
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['status', 'teknisi_ids.0']);
+    }
+
     private function userWithRole(string $roleName): User
     {
         $role = Role::query()->where('name', $roleName)->firstOrFail();
