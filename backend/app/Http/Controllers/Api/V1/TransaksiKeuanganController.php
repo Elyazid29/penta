@@ -13,7 +13,7 @@ class TransaksiKeuanganController extends Controller
 {
     public function index(): JsonResponse
     {
-        $transactions = TransaksiKeuangan::with('invoice')->latest('tanggal')->paginate();
+        $transactions = TransaksiKeuangan::with(['invoice', 'formOrder'])->latest('tanggal')->paginate();
         $summary = ['pemasukan' => TransaksiKeuangan::where('jenis', 'Pemasukan')->sum('jumlah'), 'pengeluaran' => TransaksiKeuangan::where('jenis', 'Pengeluaran')->sum('jumlah')];
         $summary['saldo'] = $summary['pemasukan'] - $summary['pengeluaran'];
 
@@ -22,20 +22,37 @@ class TransaksiKeuanganController extends Controller
 
     public function store(StoreTransaksiKeuanganRequest $request): JsonResponse
     {
-        $transaction = TransaksiKeuangan::create($request->validated());
+        $data = $this->resolveFormOrderId($request->validated());
+        $transaction = TransaksiKeuangan::create($data);
         $this->syncInvoicePayment($transaction->invoice_id);
 
-        return response()->json(['data' => $transaction->load('invoice')], 201);
+        return response()->json(['data' => $transaction->load(['invoice', 'formOrder'])], 201);
     }
 
     public function update(UpdateTransaksiKeuanganRequest $request, TransaksiKeuangan $transaksiKeuangan): JsonResponse
     {
         $previousInvoiceId = $transaksiKeuangan->invoice_id;
-        $transaksiKeuangan->update($request->validated());
+        $data = $this->resolveFormOrderId($request->validated());
+        $transaksiKeuangan->update($data);
         $this->syncInvoicePayment($previousInvoiceId);
         $this->syncInvoicePayment($transaksiKeuangan->invoice_id);
 
-        return response()->json(['data' => $transaksiKeuangan->refresh()->load('invoice')]);
+        return response()->json(['data' => $transaksiKeuangan->refresh()->load(['invoice', 'formOrder'])]);
+    }
+
+    /**
+     * Jika invoice dipilih dan form_order_id belum diisi, isi dari invoice terkait.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function resolveFormOrderId(array $data): array
+    {
+        if (! empty($data['invoice_id']) && empty($data['form_order_id'])) {
+            $data['form_order_id'] = Invoice::query()->whereKey($data['invoice_id'])->value('form_order_id');
+        }
+
+        return $data;
     }
 
     public function destroy(TransaksiKeuangan $transaksiKeuangan): JsonResponse

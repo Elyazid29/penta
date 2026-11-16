@@ -15,6 +15,7 @@ class StoreTransaksiKeuanganRequest extends FormRequest
     {
         $this->merge([
             'invoice_id' => $this->input('invoice_id', $this->input('invoices_id')),
+            'form_order_id' => $this->input('form_order_id', $this->input('form_orders_id')),
         ]);
     }
 
@@ -22,6 +23,7 @@ class StoreTransaksiKeuanganRequest extends FormRequest
     {
         return [
             'invoice_id' => ['nullable', 'exists:invoices,id'],
+            'form_order_id' => ['nullable', 'exists:form_orders,id'],
             'tanggal' => ['required', 'date'],
             'jenis' => ['required', 'in:Pemasukan,Pengeluaran'],
             'kategori' => ['required', 'string', 'max:100'],

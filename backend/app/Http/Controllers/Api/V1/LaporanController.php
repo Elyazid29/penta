@@ -48,6 +48,35 @@ class LaporanController extends Controller
 
         $saldo = $pemasukan - $pengeluaran;
 
+        $perEvent = TransaksiKeuangan::query()
+            ->selectRaw("form_order_id, SUM(CASE WHEN jenis = 'Pemasukan' THEN jumlah ELSE 0 END) as pemasukan, SUM(CASE WHEN jenis = 'Pengeluaran' THEN jumlah ELSE 0 END) as pengeluaran")
+            ->whereNotNull('form_order_id')
+            ->groupBy('form_order_id')
+            ->get()
+            ->keyBy('form_order_id');
+
+        $perEventRows = FormOrder::query()
+            ->with('klien:id,nama_klien')
+            ->whereIn('id', $perEvent->keys())
+            ->get()
+            ->map(function (FormOrder $order) use ($perEvent): array {
+                $row = $perEvent->get($order->id);
+                $masuk = (float) ($row->pemasukan ?? 0);
+                $keluar = (float) ($row->pengeluaran ?? 0);
+
+                return [
+                    'form_order_id' => $order->id,
+                    'nomor_order' => $order->nomor_order,
+                    'nama_event' => $order->nama_event,
+                    'klien' => $order->klien?->nama_klien,
+                    'pemasukan' => $masuk,
+                    'pengeluaran' => $keluar,
+                    'laba_rugi' => $masuk - $keluar,
+                ];
+            })
+            ->values()
+            ->all();
+
         return response()->json(['data' => [
             'orders' => FormOrder::count(),
             'invoices' => Invoice::count(),
@@ -60,6 +89,7 @@ class LaporanController extends Controller
             'invoice_overdue' => Invoice::query()->where('status', 'Overdue')->count(),
             'pemasukan_per_kategori' => $pemasukanPerKategori,
             'pengeluaran_per_kategori' => $pengeluaranPerKategori,
+            'per_event' => $perEventRows,
         ]]);
     }
 
@@ -67,10 +97,10 @@ class LaporanController extends Controller
     {
         return response()->streamDownload(function (): void {
             $handle = fopen('php://output', 'w');
-            fputcsv($handle, ['Tanggal', 'Jenis', 'Kategori', 'Jumlah', 'Metode', 'Referensi', 'Keterangan']);
+            fputcsv($handle, ['Tanggal', 'Jenis', 'Kategori', 'Jumlah', 'Metode', 'Referensi', 'Order ID', 'Keterangan']);
             TransaksiKeuangan::query()->latest('tanggal')->chunk(500, function ($transactions) use ($handle): void {
                 foreach ($transactions as $transaction) {
-                    fputcsv($handle, [$transaction->tanggal, $transaction->jenis, $transaction->kategori, $transaction->jumlah, $transaction->metode, $transaction->referensi, $transaction->keterangan]);
+                    fputcsv($handle, [$transaction->tanggal, $transaction->jenis, $transaction->kategori, $transaction->jumlah, $transaction->metode, $transaction->referensi, $transaction->form_order_id, $transaction->keterangan]);
                 }
             });
             fclose($handle);

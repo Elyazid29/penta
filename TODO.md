@@ -32,13 +32,13 @@
 - [x] Modul Invoice, transaksi keuangan, dan ringkasan/laporan (termasuk ekspor CSV transaksi) — sesuai implementasi saat ini
 - [x] Invoice otomatis dibuat saat Surat Jalan berstatus `Selesai` (dari total item order, jika belum ada invoice untuk order)
 - [x] Sinkronisasi & refresh status pembayaran invoice (Unpaid/DP/Paid/Overdue) dari transaksi, jatuh tempo, serta saat akses invoice/laporan
-- [x] Ringkasan laporan keuangan: saldo/laba-rugi (pemasukan-pengeluaran), piutang berjalan, jumlah invoice overdue, rincian pemasukan/pengeluaran per kategori
-- [x] Ekspor CSV laporan: transaksi (`transactions.csv`) & invoice (`invoices.csv`)
-- [ ] Pelacakan hutang/biaya per event lebih rinci (kaitkan biaya ke order/event)
+- [x] Ringkasan laporan keuangan: saldo/laba-rugi (pemasukan-pengeluaran), piutang berjalan, jumlah invoice overdue, rincian pemasukan/pengeluaran per kategori, dan laba-rugi per event/order
+- [x] Ekspor CSV laporan: transaksi (`transactions.csv`, termasuk Order ID) & invoice (`invoices.csv`)
+- [x] Pelacakan biaya/laba-rugi per event: transaksi dapat dikaitkan ke `form_order` (otomatis dari invoice bila ada), ringkasan per event pada laporan
 - [ ] Ekspor Excel/PDF operasional & keuangan lanjutan (format berkas khusus)
 
 ## Quality & Deployment
-- [x] Feature test API (67 test, 390 assertion lulus per verifikasi terakhir): auth (login/me/logout), akses terproteksi & pembatasan role (teknisi vs admin/owner), validasi invoice/transaksi/jadwal/penawaran/form order/master data/absensi/surat jalan (termasuk validasi, unik nomor/kode, & hapus/update), finance/schedule, otorisasi & user management, delivery (scan/assignment, checkout/checkin, barang susulan), surat jalan (auto-item, item/teknisi manual, invoice otomatis saat selesai), form order create/update, kalkulasi & update penawaran, sinkronisasi & resync pembayaran saat hapus/update transaksi (termasuk pindah invoice), overdue (termasuk refresh), laporan (summary laba-rugi & rincian kategori, CSV transaksi/invoice), filter & penugasan/update/hapus/validasi alat jadwal, CRUD absensi, pembersihan berkas terkait (foto barang). Rute duplikat surat-jalan/jadwal dibersihkan (admin/owner).
+- [x] Feature test API (68 test, 399 assertion lulus per verifikasi terakhir): auth (login/me/logout), akses terproteksi & pembatasan role (teknisi vs admin/owner), validasi invoice/transaksi/jadwal/penawaran/form order/master data/absensi/surat jalan (termasuk validasi, unik nomor/kode, & hapus/update), finance/schedule, otorisasi & user management, delivery (scan/assignment, checkout/checkin, barang susulan), surat jalan (auto-item, item/teknisi manual, invoice otomatis saat selesai), form order create/update, kalkulasi & update penawaran, sinkronisasi & resync pembayaran saat hapus/update transaksi (termasuk pindah invoice, kaitan form_order), overdue (termasuk refresh), laporan (summary laba-rugi, rincian kategori & per event, CSV transaksi/invoice), filter & penugasan/update/hapus/validasi alat jadwal, CRUD absensi, pembersihan berkas terkait (foto barang). Rute duplikat surat-jalan/jadwal dibersihkan (admin/owner).
 - [x] Template env produksi (`backend/.env.production.example`, `frontend/.env.production.example`), CORS env-driven
 - [x] Script backup database (`scripts/dump-db.ps1`, `scripts/dump-db.sh`)
 - [x] Panduan deploy & post-deploy checklist (`docs/DEPLOYMENT.md`)

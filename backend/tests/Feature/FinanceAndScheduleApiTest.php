@@ -61,13 +61,20 @@ class FinanceAndScheduleApiTest extends TestCase
             'status' => 'Unpaid',
         ]);
 
-        $this->postJson('/api/v1/transaksi-keuangan', [
+        $response = $this->postJson('/api/v1/transaksi-keuangan', [
             'invoice_id' => $invoice->id,
             'tanggal' => '2026-11-16',
             'jenis' => 'Pemasukan',
             'kategori' => 'DP',
             'jumlah' => 250000,
-        ])->assertCreated();
+        ])->assertCreated()
+            ->assertJsonPath('data.form_order_id', $order->id);
+
+        $this->assertDatabaseHas('transaksi_keuangans', [
+            'id' => $response->json('data.id'),
+            'invoice_id' => $invoice->id,
+            'form_order_id' => $order->id,
+        ]);
 
         $invoice->refresh();
         $this->assertSame('250000.00', (string) $invoice->dibayar);

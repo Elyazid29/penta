@@ -114,4 +114,43 @@ class LaporanApiTest extends TestCase
         $this->assertStringContainsString('Nomor Invoice', $response->streamedContent());
         $this->assertStringContainsString('INV-CSV-001', $response->streamedContent());
     }
+
+    public function test_laporan_summary_includes_per_event_profit_and_loss(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+        $klien = MasterKlien::query()->create(['nama_klien' => 'PT Event']);
+        $order = FormOrder::query()->create([
+            'nomor_order' => 'ORD-EVT-001',
+            'klien_id' => $klien->id,
+            'nama_event' => 'Konser',
+            'venue' => 'Jakarta',
+            'load_in' => now(),
+            'load_out' => now()->addDay(),
+            'status' => 'Draft',
+        ]);
+
+        TransaksiKeuangan::query()->create([
+            'form_order_id' => $order->id,
+            'tanggal' => '2026-11-10',
+            'jenis' => 'Pemasukan',
+            'kategori' => 'DP',
+            'jumlah' => 1000000,
+        ]);
+        TransaksiKeuangan::query()->create([
+            'form_order_id' => $order->id,
+            'tanggal' => '2026-11-11',
+            'jenis' => 'Pengeluaran',
+            'kategori' => 'Biaya Event',
+            'jumlah' => 300000,
+        ]);
+
+        $this->getJson('/api/v1/laporan/summary')
+            ->assertOk()
+            ->assertJsonPath('data.per_event.0.form_order_id', $order->id)
+            ->assertJsonPath('data.per_event.0.nomor_order', 'ORD-EVT-001')
+            ->assertJsonPath('data.per_event.0.nama_event', 'Konser')
+            ->assertJsonPath('data.per_event.0.pemasukan', 1000000)
+            ->assertJsonPath('data.per_event.0.pengeluaran', 300000)
+            ->assertJsonPath('data.per_event.0.laba_rugi', 700000);
+    }
 }
