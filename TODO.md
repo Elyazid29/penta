@@ -33,7 +33,7 @@
 - [ ] Ekspor Excel/PDF operasional & keuangan lanjutan
 
 ## Quality & Deployment
-- [x] Feature test dasar API (14 test, 50 assertion lulus per verifikasi terakhir) + perbaikan validasi request invoice/transaksi/jadwal (field & alias)
+- [x] Feature test API (16 test, 69 assertion lulus per verifikasi terakhir): perbaikan validasi request invoice/transaksi/jadwal, tes finance/schedule, tes otorisasi & user management (owner), akses delivery teknisi vs CRUD surat jalan. Rute duplikat surat-jalan/jadwal dibersihkan (admin/owner).
 - [x] Template env produksi (`backend/.env.production.example`, `frontend/.env.production.example`), CORS env-driven
 - [x] Script backup database (`scripts/dump-db.ps1`, `scripts/dump-db.sh`)
 - [x] Panduan deploy & post-deploy checklist (`docs/DEPLOYMENT.md`)

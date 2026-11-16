@@ -42,8 +42,6 @@ Route::apiResource('v1/master-armada', MasterArmadaController::class)->middlewar
 Route::apiResource('v1/form-order', FormOrderController::class)->middleware('auth:sanctum');
 
 Route::apiResource('v1/form-penawaran', FormPenawaranController::class)->middleware('auth:sanctum');
-Route::apiResource('v1/surat-jalan', SuratJalanController::class)->except(['show'])->middleware('auth:sanctum');
-Route::apiResource('v1/jadwal-operasional', JadwalOperasionalController::class)->except(['show'])->middleware('auth:sanctum');
 Route::apiResource('v1/invoice', InvoiceController::class)->except(['show'])->middleware('auth:sanctum');
 Route::apiResource('v1/transaksi-keuangan', TransaksiKeuanganController::class)->except(['show'])->middleware('auth:sanctum');
 Route::get('v1/laporan/summary', [LaporanController::class, 'summary'])->middleware('auth:sanctum');
