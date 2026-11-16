@@ -145,6 +145,52 @@ class AdditionalFlowApiTest extends TestCase
         $this->assertDatabaseHas('form_penawaran_items', ['nama_item' => 'Item C', 'subtotal' => '100000.00']);
     }
 
+    public function test_form_penawaran_validation_rejects_invalid_payload(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+        $order = $this->makeOrder('ORD-PEN-VAL');
+
+        $this->postJson('/api/v1/form-penawaran', [
+            'nomor_penawaran' => 'PEN-BAD',
+            'form_order_id' => $order->id,
+            'tanggal_penawaran' => '2026-11-16',
+            'status' => 'Draft',
+            'diskon' => 0,
+            'pajak' => 0,
+            'items' => [],
+        ])->assertUnprocessable()->assertJsonValidationErrors(['items']);
+
+        $this->postJson('/api/v1/form-penawaran', [
+            'nomor_penawaran' => 'PEN-BAD-2',
+            'form_order_id' => 999999,
+            'tanggal_penawaran' => '2026-11-16',
+            'status' => 'Unknown',
+            'diskon' => 0,
+            'pajak' => 0,
+            'items' => [['nama_item' => 'X', 'qty' => 0, 'harga' => -1]],
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['form_order_id', 'status', 'items.0.qty', 'items.0.harga']);
+    }
+
+    public function test_form_penawaran_can_be_deleted(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+        $order = $this->makeOrder('ORD-PEN-DEL');
+        $penawaran = FormPenawaran::query()->create([
+            'nomor_penawaran' => 'PEN-DEL-001',
+            'form_order_id' => $order->id,
+            'tanggal_penawaran' => '2026-11-16',
+            'status' => 'Draft',
+            'subtotal' => 0,
+            'diskon' => 0,
+            'pajak' => 0,
+            'total' => 0,
+        ]);
+
+        $this->deleteJson('/api/v1/form-penawaran/'.$penawaran->id)->assertNoContent();
+        $this->assertDatabaseMissing('form_penawarans', ['id' => $penawaran->id]);
+    }
+
     private function actingAsRole(string $roleName): User
     {
         $role = Role::query()->where('name', $roleName)->firstOrFail();
