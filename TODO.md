@@ -34,12 +34,12 @@
 - [ ] Ekspor Excel/PDF operasional & keuangan lanjutan
 
 ## Quality & Deployment
-- [x] Feature test API (20 test, 89 assertion lulus per verifikasi terakhir): validasi invoice/transaksi/jadwal, finance/schedule, otorisasi & user management, akses delivery teknisi vs CRUD surat jalan, surat jalan auto-item, checkout/checkin delivery (+ foto/checklist), deteksi konflik jadwal. Rute duplikat surat-jalan/jadwal dibersihkan (admin/owner).
+- [x] Feature test API (23 test, 108 assertion lulus per verifikasi terakhir): validasi invoice/transaksi/jadwal/penawaran, finance/schedule, otorisasi & user management, delivery (scan/assignment, checkout/checkin, barang susulan + foto), surat jalan auto-item, kalkulasi penawaran. Rute duplikat surat-jalan/jadwal dibersihkan (admin/owner).
 - [x] Template env produksi (`backend/.env.production.example`, `frontend/.env.production.example`), CORS env-driven
 - [x] Script backup database (`scripts/dump-db.ps1`, `scripts/dump-db.sh`)
 - [x] Panduan deploy & post-deploy checklist (`docs/DEPLOYMENT.md`)
 - [x] Flowchart surat jalan & teknisi (`docs/flowchart-*.png`)
-- [ ] Perluasan cakupan test (hak akses role, edge case modul lain, barang susulan, penawaran/form order)
+- [ ] Perluasan cakupan test (hak akses role, edge case modul lain, form order CRUD/update)
 - [x] Deteksi & uji konflik penjadwalan crew/armada (tes API)
 - [ ] Uji perangkat mobile & skenario offline
 - [ ] Audit log

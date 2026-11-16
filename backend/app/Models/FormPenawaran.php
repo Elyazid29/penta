@@ -11,7 +11,7 @@ class FormPenawaran extends Model
 {
     use HasFactory;
 
-    protected $table = 'form_penawaran';
+    protected $table = 'form_penawarans';
 
     protected $fillable = ['nomor_penawaran', 'form_order_id', 'tanggal_penawaran', 'berlaku_sampai', 'status', 'subtotal', 'diskon', 'pajak', 'total', 'catatan'];
 
