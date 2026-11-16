@@ -35,4 +35,30 @@ class MasterKaryawanApiTest extends TestCase
         $this->assertNotNull($employee->ktp_path);
         Storage::disk('public')->assertExists($employee->ktp_path);
     }
+
+    public function test_master_karyawan_can_be_updated_deleted_and_validated(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+        $employee = MasterKaryawan::query()->create([
+            'nama_lengkap' => 'Budi',
+            'jabatan' => 'Teknisi',
+            'status' => 'Aktif',
+        ]);
+
+        $this->putJson('/api/v1/master-karyawan/'.$employee->id, [
+            'nama_lengkap' => 'Budi Santoso',
+            'jabatan' => 'Supervisor',
+            'status' => 'Non-Aktif',
+        ])->assertOk()
+            ->assertJsonPath('data.nama_lengkap', 'Budi Santoso')
+            ->assertJsonPath('data.status', 'Non-Aktif');
+
+        $this->assertDatabaseHas('master_karyawans', ['id' => $employee->id, 'jabatan' => 'Supervisor', 'status' => 'Non-Aktif']);
+
+        $this->postJson('/api/v1/master-karyawan', [])->assertUnprocessable()
+            ->assertJsonValidationErrors(['nama_lengkap', 'jabatan', 'status']);
+
+        $this->deleteJson('/api/v1/master-karyawan/'.$employee->id)->assertNoContent();
+        $this->assertDatabaseMissing('master_karyawans', ['id' => $employee->id]);
+    }
 }

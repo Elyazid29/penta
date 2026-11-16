@@ -36,6 +36,22 @@ class MasterDataCrudTest extends TestCase
         $this->assertDatabaseMissing('master_armadas', ['id' => $created['id']]);
     }
 
+    public function test_master_armada_validation_rejects_invalid_payload(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+
+        $this->postJson('/api/v1/master-armada', [
+            'jenis_kendaraan' => 'Mobil',
+            'plat_nomor' => 'B 1 XX',
+            'status_stnk' => 'Unknown',
+            'status_operasional' => 'Parkir',
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['status_stnk', 'status_operasional']);
+
+        $this->postJson('/api/v1/master-armada', [])->assertUnprocessable()
+            ->assertJsonValidationErrors(['jenis_kendaraan', 'plat_nomor', 'status_stnk', 'status_operasional']);
+    }
+
     public function test_user_can_create_update_and_delete_perusahaan(): void
     {
         $ownerRole = Role::query()->where('name', 'owner')->firstOrFail();

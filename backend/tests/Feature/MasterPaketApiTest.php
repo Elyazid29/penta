@@ -33,4 +33,36 @@ class MasterPaketApiTest extends TestCase
             'qty' => 2,
         ]);
     }
+
+    public function test_master_paket_can_be_updated_deleted_and_validated(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+        $paket = MasterPaket::query()->create([
+            'kode_paket' => 'PKT-CRUD-1',
+            'nama_paket' => 'Paket Awal',
+            'harga_paket' => 100000,
+        ]);
+        $paket->items()->create(['nama_item' => 'Item Awal', 'qty' => 1, 'harga' => 100000]);
+
+        $this->putJson('/api/v1/master-paket/'.$paket->id, [
+            'kode_paket' => 'PKT-CRUD-1',
+            'nama_paket' => 'Paket Update',
+            'harga_paket' => 250000,
+            'items' => [['nama_item' => 'Item Baru', 'qty' => 2, 'satuan' => 'unit', 'harga' => 125000]],
+        ])->assertOk()->assertJsonPath('data.nama_paket', 'Paket Update');
+
+        $this->assertDatabaseHas('master_pakets', ['id' => $paket->id, 'nama_paket' => 'Paket Update']);
+        $this->assertDatabaseHas('master_paket_items', ['paket_id' => $paket->id, 'nama_item' => 'Item Baru']);
+        $this->assertDatabaseMissing('master_paket_items', ['paket_id' => $paket->id, 'nama_item' => 'Item Awal']);
+
+        $this->postJson('/api/v1/master-paket', [
+            'kode_paket' => 'PKT-BAD',
+            'nama_paket' => 'Bad',
+            'harga_paket' => 1000,
+            'items' => [],
+        ])->assertUnprocessable()->assertJsonValidationErrors(['items']);
+
+        $this->deleteJson('/api/v1/master-paket/'.$paket->id)->assertNoContent();
+        $this->assertDatabaseMissing('master_pakets', ['id' => $paket->id]);
+    }
 }
