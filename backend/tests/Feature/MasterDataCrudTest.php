@@ -77,4 +77,14 @@ class MasterDataCrudTest extends TestCase
         $this->deleteJson('/api/v1/master-perusahaan/'.$created['id'])->assertNoContent();
         $this->assertDatabaseMissing('master_perusahaans', ['id' => $created['id']]);
     }
+
+    public function test_master_perusahaan_validation_rejects_missing_name(): void
+    {
+        $ownerRole = Role::query()->where('name', 'owner')->firstOrFail();
+        Sanctum::actingAs(User::factory()->create(['role_id' => $ownerRole->id]));
+
+        $this->postJson('/api/v1/master-perusahaan', [
+            'alamat_kantor' => 'Jakarta',
+        ])->assertUnprocessable()->assertJsonValidationErrors(['nama_perusahaan']);
+    }
 }

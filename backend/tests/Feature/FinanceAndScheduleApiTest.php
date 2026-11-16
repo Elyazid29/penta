@@ -437,6 +437,59 @@ class FinanceAndScheduleApiTest extends TestCase
         $this->assertSame('Unpaid', $invoice->status);
     }
 
+    public function test_updating_transaksi_keuangan_resyncs_previous_and_new_invoice(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+        $order = $this->makeOrder();
+        $invoiceA = Invoice::query()->create([
+            'nomor_invoice' => 'INV-MOVE-A',
+            'form_order_id' => $order->id,
+            'tanggal_invoice' => '2026-11-15',
+            'subtotal' => 1000000,
+            'diskon' => 0,
+            'pajak' => 0,
+            'total' => 1000000,
+            'dibayar' => 0,
+            'status' => 'Unpaid',
+        ]);
+        $invoiceB = Invoice::query()->create([
+            'nomor_invoice' => 'INV-MOVE-B',
+            'form_order_id' => $order->id,
+            'tanggal_invoice' => '2026-11-15',
+            'subtotal' => 500000,
+            'diskon' => 0,
+            'pajak' => 0,
+            'total' => 500000,
+            'dibayar' => 0,
+            'status' => 'Unpaid',
+        ]);
+
+        $create = $this->postJson('/api/v1/transaksi-keuangan', [
+            'invoice_id' => $invoiceA->id,
+            'tanggal' => '2026-11-16',
+            'jenis' => 'Pemasukan',
+            'kategori' => 'DP',
+            'jumlah' => 400000,
+        ])->assertCreated();
+        $txId = $create->json('data.id');
+        $this->assertSame('400000.00', (string) $invoiceA->refresh()->dibayar);
+
+        $this->putJson('/api/v1/transaksi-keuangan/'.$txId, [
+            'invoice_id' => $invoiceB->id,
+            'tanggal' => '2026-11-17',
+            'jenis' => 'Pemasukan',
+            'kategori' => 'Pelunasan',
+            'jumlah' => 500000,
+        ])->assertOk();
+
+        $invoiceA->refresh();
+        $invoiceB->refresh();
+        $this->assertSame('0.00', (string) $invoiceA->dibayar);
+        $this->assertSame('Unpaid', $invoiceA->status);
+        $this->assertSame('500000.00', (string) $invoiceB->dibayar);
+        $this->assertSame('Paid', $invoiceB->status);
+    }
+
     private function makeOrder(): FormOrder
     {
         $klien = MasterKlien::query()->create(['nama_klien' => 'PT Uji']);
