@@ -29,12 +29,13 @@
 ## Fase 3 — Keuangan & Laporan
 - [x] Modul Invoice, transaksi keuangan, dan ringkasan/laporan (termasuk ekspor CSV transaksi) — sesuai implementasi saat ini
 - [ ] Alur invoice dari Surat Jalan selesai (end-to-end) & status pembayaran lengkap
-- [ ] Pencatatan DP/pelunasan/piutang/hutang/biaya event yang lebih rinci
+- [x] Sinkronisasi status pembayaran invoice (Unpaid/DP/Paid) dari transaksi pemasukan terkait
+- [ ] Pencatatan DP/pelunasan/piutang/hutang/biaya event yang lebih rinci (pelacakan lanjutan)
 - [ ] Dashboard arus kas & laba/rugi lanjutan
 - [ ] Ekspor Excel/PDF operasional & keuangan lanjutan
 
 ## Quality & Deployment
-- [x] Feature test API (24 test, 126 assertion lulus per verifikasi terakhir): validasi invoice/transaksi/jadwal/penawaran, finance/schedule, otorisasi & user management, delivery (scan/assignment, checkout/checkin, barang susulan), surat jalan auto-item, form order create/update (ganti item), kalkulasi & update penawaran. Rute duplikat surat-jalan/jadwal dibersihkan (admin/owner).
+- [x] Feature test API (25 test, 132 assertion lulus per verifikasi terakhir): validasi invoice/transaksi/jadwal/penawaran, finance/schedule, otorisasi & user management, delivery (scan/assignment, checkout/checkin, barang susulan), surat jalan auto-item, form order create/update, kalkulasi & update penawaran, sinkronisasi pembayaran invoice. Rute duplikat surat-jalan/jadwal dibersihkan (admin/owner).
 - [x] Template env produksi (`backend/.env.production.example`, `frontend/.env.production.example`), CORS env-driven
 - [x] Script backup database (`scripts/dump-db.ps1`, `scripts/dump-db.sh`)
 - [x] Panduan deploy & post-deploy checklist (`docs/DEPLOYMENT.md`)

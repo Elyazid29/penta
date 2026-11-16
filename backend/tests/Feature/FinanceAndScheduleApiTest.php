@@ -44,6 +44,47 @@ class FinanceAndScheduleApiTest extends TestCase
             ->assertJsonPath('summary.saldo', 750000);
     }
 
+    public function test_pemasukan_transaction_syncs_invoice_dibayar_and_status(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+        $order = $this->makeOrder();
+        $invoice = Invoice::query()->create([
+            'nomor_invoice' => 'INV-SYNC-001',
+            'form_order_id' => $order->id,
+            'tanggal_invoice' => '2026-11-15',
+            'subtotal' => 1000000,
+            'diskon' => 0,
+            'pajak' => 0,
+            'total' => 1000000,
+            'dibayar' => 0,
+            'status' => 'Unpaid',
+        ]);
+
+        $this->postJson('/api/v1/transaksi-keuangan', [
+            'invoice_id' => $invoice->id,
+            'tanggal' => '2026-11-16',
+            'jenis' => 'Pemasukan',
+            'kategori' => 'DP',
+            'jumlah' => 250000,
+        ])->assertCreated();
+
+        $invoice->refresh();
+        $this->assertSame('250000.00', (string) $invoice->dibayar);
+        $this->assertSame('DP', $invoice->status);
+
+        $this->postJson('/api/v1/transaksi-keuangan', [
+            'invoice_id' => $invoice->id,
+            'tanggal' => '2026-11-17',
+            'jenis' => 'Pemasukan',
+            'kategori' => 'Pelunasan',
+            'jumlah' => 750000,
+        ])->assertCreated();
+
+        $invoice->refresh();
+        $this->assertSame('1000000.00', (string) $invoice->dibayar);
+        $this->assertSame('Paid', $invoice->status);
+    }
+
     public function test_invoice_can_be_created_with_correct_fields_and_legacy_aliases(): void
     {
         Sanctum::actingAs(User::factory()->create());
