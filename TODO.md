@@ -30,12 +30,12 @@
 - [x] Modul Invoice, transaksi keuangan, dan ringkasan/laporan (termasuk ekspor CSV transaksi) — sesuai implementasi saat ini
 - [x] Invoice otomatis dibuat saat Surat Jalan berstatus `Selesai` (dari total item order, jika belum ada invoice untuk order)
 - [x] Sinkronisasi status pembayaran invoice (Unpaid/DP/Paid/Overdue) dari transaksi pemasukan & jatuh tempo
-- [ ] Pelacakan piutang/hutang/biaya event lebih rinci
-- [ ] Dashboard arus kas & laba/rugi lanjutan
+- [x] Ringkasan laporan keuangan: saldo (pemasukan-pengeluaran), piutang berjalan, jumlah invoice overdue
+- [ ] Pelacakan hutang/biaya event lebih rinci & laba/rugi lanjutan
 - [ ] Ekspor Excel/PDF operasional & keuangan lanjutan
 
 ## Quality & Deployment
-- [x] Feature test API (27 test, 142 assertion lulus per verifikasi terakhir): validasi invoice/transaksi/jadwal/penawaran, finance/schedule, otorisasi & user management, delivery (scan/assignment, checkout/checkin, barang susulan), surat jalan auto-item & invoice otomatis saat selesai, form order create/update, kalkulasi & update penawaran, sinkronisasi pembayaran invoice & overdue. Rute duplikat surat-jalan/jadwal dibersihkan (admin/owner).
+- [x] Feature test API (28 test, 148 assertion lulus per verifikasi terakhir): validasi invoice/transaksi/jadwal/penawaran, finance/schedule, otorisasi & user management, delivery (scan/assignment, checkout/checkin, barang susulan), surat jalan auto-item & invoice otomatis saat selesai, form order create/update, kalkulasi & update penawaran, sinkronisasi pembayaran & overdue, laporan ringkasan (saldo/piutang). Rute duplikat surat-jalan/jadwal dibersihkan (admin/owner).
 - [x] Template env produksi (`backend/.env.production.example`, `frontend/.env.production.example`), CORS env-driven
 - [x] Script backup database (`scripts/dump-db.ps1`, `scripts/dump-db.sh`)
 - [x] Panduan deploy & post-deploy checklist (`docs/DEPLOYMENT.md`)

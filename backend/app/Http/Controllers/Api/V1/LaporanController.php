@@ -14,7 +14,22 @@ class LaporanController extends Controller
 {
     public function summary(): JsonResponse
     {
-        return response()->json(['data' => ['orders' => FormOrder::count(), 'invoices' => Invoice::count(), 'barang' => MasterBarang::count(), 'pemasukan' => TransaksiKeuangan::where('jenis', 'Pemasukan')->sum('jumlah'), 'pengeluaran' => TransaksiKeuangan::where('jenis', 'Pengeluaran')->sum('jumlah')]]);
+        $pemasukan = (float) TransaksiKeuangan::query()->where('jenis', 'Pemasukan')->sum('jumlah');
+        $pengeluaran = (float) TransaksiKeuangan::query()->where('jenis', 'Pengeluaran')->sum('jumlah');
+        $piutang = (float) Invoice::query()
+            ->selectRaw('COALESCE(SUM(CASE WHEN total > dibayar THEN total - dibayar ELSE 0 END), 0) as piutang')
+            ->value('piutang');
+
+        return response()->json(['data' => [
+            'orders' => FormOrder::count(),
+            'invoices' => Invoice::count(),
+            'barang' => MasterBarang::count(),
+            'pemasukan' => $pemasukan,
+            'pengeluaran' => $pengeluaran,
+            'saldo' => $pemasukan - $pengeluaran,
+            'piutang' => $piutang,
+            'invoice_overdue' => Invoice::query()->where('status', 'Overdue')->count(),
+        ]]);
     }
 
     public function transactionsCsv(): StreamedResponse
