@@ -12,6 +12,8 @@ class InvoiceController extends Controller
 {
     public function index(): JsonResponse
     {
+        $this->refreshOverdueStatuses();
+
         return response()->json(['data' => Invoice::with('order')->latest()->paginate()]);
     }
 
@@ -32,5 +34,17 @@ class InvoiceController extends Controller
         $invoice->delete();
 
         return response()->json(status: 204);
+    }
+
+    /**
+     * Tandai invoice lewat jatuh tempo yang belum lunas sebagai Overdue.
+     */
+    private function refreshOverdueStatuses(): void
+    {
+        Invoice::query()
+            ->where('status', '!=', 'Paid')
+            ->whereNotNull('jatuh_tempo')
+            ->whereDate('jatuh_tempo', '<', now()->toDateString())
+            ->update(['status' => 'Overdue']);
     }
 }

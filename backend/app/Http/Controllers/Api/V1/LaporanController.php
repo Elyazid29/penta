@@ -14,6 +14,12 @@ class LaporanController extends Controller
 {
     public function summary(): JsonResponse
     {
+        Invoice::query()
+            ->where('status', '!=', 'Paid')
+            ->whereNotNull('jatuh_tempo')
+            ->whereDate('jatuh_tempo', '<', now()->toDateString())
+            ->update(['status' => 'Overdue']);
+
         $pemasukan = (float) TransaksiKeuangan::query()->where('jenis', 'Pemasukan')->sum('jumlah');
         $pengeluaran = (float) TransaksiKeuangan::query()->where('jenis', 'Pengeluaran')->sum('jumlah');
         $piutang = (float) Invoice::query()
