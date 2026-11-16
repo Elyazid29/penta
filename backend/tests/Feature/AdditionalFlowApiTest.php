@@ -123,6 +123,26 @@ class AdditionalFlowApiTest extends TestCase
             'subtotal' => '200000.00',
         ]);
         $this->assertSame(1, FormPenawaran::query()->count());
+
+        $id = $response->json('data.id');
+        $updated = $this->putJson("/api/v1/form-penawaran/{$id}", [
+            'nomor_penawaran' => 'PEN-001',
+            'form_order_id' => $order->id,
+            'tanggal_penawaran' => '2026-11-16',
+            'status' => 'Dikirim',
+            'diskon' => 0,
+            'pajak' => 20000,
+            'items' => [
+                ['nama_item' => 'Item C', 'qty' => 1, 'harga' => 100000],
+            ],
+        ]);
+
+        $updated->assertOk()
+            ->assertJsonPath('data.subtotal', '100000.00')
+            ->assertJsonPath('data.total', '120000.00')
+            ->assertJsonCount(1, 'data.items');
+        $this->assertDatabaseMissing('form_penawaran_items', ['nama_item' => 'Item A']);
+        $this->assertDatabaseHas('form_penawaran_items', ['nama_item' => 'Item C', 'subtotal' => '100000.00']);
     }
 
     private function actingAsRole(string $roleName): User
