@@ -1,35 +1,50 @@
-# TODO � Penta Tri Saka Enterprise Operations
+# TODO — Penta Tri Saka Enterprise Operations
 
 ## Status saat ini
-- [x] Prototype UI corporate minimalist blue
-- [x] CRUD lokal: Master Barang, Karyawan, dan Klien
-- [x] Dashboard ringkasan dan pencarian data
-- [ ] Migrasi prototype ke Next.js App Router
-- [ ] Backend Laravel REST API dan MySQL
+- [x] UI corporate minimalist blue (Next.js frontend)
+- [x] Monorepo `frontend/` (Next.js App Router) dan `backend/` (Laravel REST API)
+- [x] Backend Laravel + MySQL, Sanctum, storage, CORS (env-driven)
+- [x] Autentikasi token Sanctum dan role Owner/Admin/Teknisi (`role_id` → `roles`)
+- [x] Dashboard ringkasan operasional/keuangan dan pencarian data
 
-## Phase 1 � Fondasi production
-- [ ] Inisialisasi monorepo `frontend` (Next.js) dan `backend` (Laravel)
-- [x] Konfigurasi template environment MySQL, Sanctum, storage, dan CORS
-- [x] Autentikasi token Sanctum dan role Owner/Admin/Leader/Teknisi/Driver
-- [ ] Migration dan API CRUD: barang, paket, karyawan, klien, armada, perusahaan`r`n- [x] Master Barang, Master Paket, Master Karyawan, Master Klien, Master Armada, dan Master Perusahaan (API CRUD)
-- [ ] Upload foto aset dan dokumen KTP yang aman
+## Fase 1 — Fondasi & Master Data
+- [x] Migration dan API CRUD: barang, paket, karyawan, klien, armada, perusahaan
+- [x] Master Barang satuan & Master Paket (item paket standalone/bebas, bukan dari master barang satuan)
+- [x] Master Karyawan (termasuk tautan akun login teknisi opsional) & Master Klien
+- [x] Master Armada & Master Perusahaan
+- [x] Upload foto aset / dokumen KTP (kompresi client + server, thumbnail)
+- [x] User management (Owner): kelola akun & role
 
-## Phase 2 � Operasional
-- [x] Form Order dengan event, load-in/load-out, venue, dan item sewa
-- [x] Quotation dari order dengan nomor unik, item, subtotal, diskon, pajak, dan total
-- [ ] Matrix jadwal crew, armada, dan alat
-- [ ] Surat Jalan, nomor otomatis, penugasan, dan daftar barang
-- [ ] Field checklist check-out/check-in, foto WebP, dan mode offline
+## Fase 2 — Operasional
+- [x] Form Order (event, venue/ruangan/lantai, load-in/load-out, item sewa)
+- [x] Form Penawaran/Quotation dari order (nomor unik, item, subtotal/diskon/pajak/total, status)
+- [x] Surat Jalan: nomor, kaitan order, item otomatis dari Form Order, penugasan teknisi dari karyawan, pencarian
+- [x] Field checklist teknisi: scan surat jalan, checkout/checkin, checklist kondisi, foto (kompresi + thumbnail), barang susulan
+- [x] Riwayat foto per surat jalan (endpoint + tampilan admin, thumbnail/foto asli)
+- [x] Aturan akses: tanpa penugasan teknisi → teknisi mana pun boleh; bila ditugaskan → terbatas ke yang ditugaskan/admin/owner
+- [ ] Mode offline checklist & sinkronisasi
+- [ ] Penyempurnaan matrix penjadwalan crew/armada/alat & deteksi konflik
 
-## Phase 3 � Keuangan dan laporan
-- [ ] Invoice dari Surat Jalan selesai
-- [ ] Pencatatan DP, pelunasan, piutang, hutang, dan biaya event
-- [ ] Dashboard arus kas dan laporan laba/rugi
-- [ ] Ekspor Excel/PDF untuk operasional dan keuangan
+## Fase 3 — Keuangan & Laporan
+- [x] Modul Invoice, transaksi keuangan, dan ringkasan/laporan (termasuk ekspor CSV transaksi) — sesuai implementasi saat ini
+- [ ] Alur invoice dari Surat Jalan selesai (end-to-end) & status pembayaran lengkap
+- [ ] Pencatatan DP/pelunasan/piutang/hutang/biaya event yang lebih rinci
+- [ ] Dashboard arus kas & laba/rugi lanjutan
+- [ ] Ekspor Excel/PDF operasional & keuangan lanjutan
 
-## Quality & deployment
-- [ ] Feature/unit test API dan hak akses role
+## Quality & Deployment
+- [x] Feature test dasar API (11 test, 38 assertion lulus per verifikasi terakhir)
+- [x] Template env produksi (`backend/.env.production.example`, `frontend/.env.production.example`), CORS env-driven
+- [x] Script backup database (`scripts/dump-db.ps1`, `scripts/dump-db.sh`)
+- [x] Panduan deploy & post-deploy checklist (`docs/DEPLOYMENT.md`)
+- [x] Flowchart surat jalan & teknisi (`docs/flowchart-*.png`)
+- [ ] Perluasan cakupan test (hak akses role, edge case modul lain)
 - [ ] Uji konflik penjadwalan crew/aset
-- [ ] Uji perangkat mobile dan sinkronisasi offline
-- [ ] Backup database, audit log, dan deployment
-- [x] Dashboard Owner dengan sidebar dan ringkasan API
+- [ ] Uji perangkat mobile & skenario offline
+- [ ] Audit log
+- [ ] Deploy produksi (menunggu hosting/infrastruktur) — ikuti `docs/DEPLOYMENT.md`
+
+## Catatan / keputusan terbuka
+- [ ] Konfirmasi owner: item paket benar-benar standalone (tidak bisa disewa satuan)
+- [ ] Aset desain besar (`Design System Part 1.pdf`, `design system/`) di luar git — pertimbangkan Git LFS bila perlu
+- [ ] (Opsional) Evaluasi static export Next.js untuk frontend sesuai `docs/DEPLOYMENT.md`

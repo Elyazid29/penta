@@ -1,180 +1,104 @@
-PENTA TRI SAKA - TECHNICAL SPECIFICATION & CODEX BLUEPRINT
-1. IKHTISAR APLIKASI & DOMAIN BISNIS
-Penta Tri Saka Enterprise Operations adalah sistem aplikasi web pengelolaan operasional internal terpadu untuk perusahaan yang bergerak di bidang Rental Audio Visual (AV) & Dokumentasi Video.
+# PENTA TRI SAKA - TECHNICAL SPECIFICATION & CODEX BLUEPRINT
 
-Aplikasi ini berfungsi untuk memusatkan seluruh alur kerja operasional perusahaan, mulai dari:
+## 1. Ikhtisar Aplikasi & Domain Bisnis
+Penta Tri Saka Enterprise Operations adalah sistem aplikasi web pengelolaan operasional internal terpadu untuk perusahaan Rental Audio Visual (AV) & Dokumentasi Video.
 
-Pengelolaan Master Data Aset (Alat AV satuan & paket).
+Aplikasi memusatkan alur kerja operasional:
+- Pengelolaan master data aset (alat AV satuan & paket).
+- Pengelolaan SDM (karyawan/teknisi, leader, driver) dan akun pengguna.
+- Pengelolaan database klien & armada operasional.
+- Transaksi awal (Form Order & Form Penawaran/Quotation).
+- Manajemen penjadwalan operasional.
+- Kontrol lapangan (Surat Jalan & checklist/foto delivery).
+- Penagihan & keuangan (Invoice, transaksi, laporan).
 
-Pengelolaan Sumber Daya Manusia (Teknisi, Leader, Driver).
+## 2. Stack Teknologi & Arsitektur
+Arsitektur terpisah Frontend dan Backend RESTful API:
 
-Pengelolaan Database Klien & Armada Operasional.
+- **Frontend**: Next.js (React, App Router) — `frontend/` (`src/app`).
+- **Styling**: Tailwind CSS.
+- **Icon**: Lucide Icons.
+- **Backend**: Laravel (PHP) — `backend/`, REST API (`/api/v1/...`).
+- **Autentikasi API**: Laravel Sanctum (Bearer token).
+- **Database**: MySQL.
+- **Storage**: disk `public` (`storage/app/public`, akses via `storage:link`).
+- **Kompresi foto**:
+  - Client-side (browser/canvas) sebelum upload: resize maks 1600px, JPEG quality ~0.75 (`frontend/src/app/compress-image.ts`) untuk checkout/checkin/barang susulan.
+  - Server-side (`backend/app/Services/PhotoStorage.php`): normalisasi/resize maks 1600px JPEG q75 + thumbnail 320px q70; fallback simpan file asli bila encoding gagal.
 
-Transaksi awal (Form Order & Form Penawaran / Quotation).
+## 3. Panduan Style Design (Corporate Minimalist Blue)
+- **Primary**: #1E40AF / #2563EB (navbar, CTA, header, status aktif).
+- **Secondary**: #EFF6FF / #DBEAFE (background aktif, hover, badge netral).
+- **Background utama**: #F8FAFC.
+- **Card/container**: #FFFFFF, border #E2E8F0, bayangan halus.
+- **Teks**: utama #0F172A, sekunder #64748B. Font sans-serif (Inter/Roboto).
+- **Spacing**: lega (negative space) untuk kenyamanan penggunaan lama.
 
-Manajemen Penjadwalan Crew & Alat (Matrix Scheduling).
+## 4. Dokumentasi Fitur Utama
 
-Kontrol Lapangan (Surat Jalan & Field Checklist).
+### A. Dashboard (Overview Operasional & Keuangan)
+Ringkasan untuk Owner/Admin: indikator operasional, proyek/order aktif, ringkasan keuangan/piutang/hutang/arus kas, dan tabel aksi (order/invoice) sesuai data API.
 
-Penagihan & Keuangan (Invoice, Piutang, Hutang, Laporan Finansial).
+### B. Database (Master Data Management)
+Modul input & pengelolaan data dasar:
 
-2. STACK TEKNOLOGI & ARSITEKTUR
-Sistem dibangun menggunakan arsitektur Modern Single-Page Application (SPA) / Progressive Web App (PWA) dengan pemisahan Frontend dan Backend RESTful API:
+- **Data Barang (Satuan & Paket)**
+  - **Satuan** (`master_barangs`): kode, nama, kategori, satuan, deskripsi/spesifikasi, foto, jumlah total/rusak/di sewa, harga rental.
+  - **Paket** (`master_pakets` + `master_paket_items`): kode, nama, kategori/sub kategori, satuan, harga paket, catatan. **Item paket berdiri sendiri** (diinput bebas, tidak dipilih dari master barang satuan) karena sebagian barang hanya disewakan per paket/tidak satuan. Tiap item menyimpan `nama_item`, `qty` (volume), `satuan`, `harga`, `urutan`; `barang_id` tidak digunakan/dikosongkan oleh aplikasi. *Status: keputusan final owner masih perlu dikonfirmasi.*
+- **Data Karyawan** (`master_karyawans`): nama, NIK, no. telp, jabatan, no. rekening, status (Aktif/Non-Aktif), KTP, dll. Karyawan dapat diberi akun login (email/password, role teknisi) dan ditautkan via `user_id`.
+- **Data Klien** (`master_kliens`): nama klien/perusahaan, alamat, beberapa contact person, NPWP, kategori.
+- **Data Armada** (`master_armadas`): jenis kendaraan, plat nomor, status STNK, driver, status operasional.
+- **Data Perusahaan** (`master_perusahaans`): identitas, alamat, kontak, kop/logo, rekening bank.
 
-Frontend Framework: Next.js (React 18+ App Router) / HTML5 Single File Prototype.
+### C. Form Order
+Input pesanan sewa: klien, event, venue/ruangan/lantai, load-in/load-out, status, catatan, dan daftar item sewa.
 
-Styling Engine: Tailwind CSS 3.x / Vanilla CSS.
+### D. Form Penawaran (Quotation)
+Konversi Form Order menjadi penawaran harga (nomor unik, item, subtotal/diskon/pajak/total, status) untuk kebutuhan dokumen/kirim/print.
 
-Iconography: Lucide Icons / Heroicons.
+### E. Surat Jalan & Field Checklist (Delivery)
+- **Admin/Owner**: penerbitan surat jalan (nomor, order terkait, tanggal berangkat, status, catatan), **daftar barang otomatis dari Form Order** (tanpa input item manual), penugasan teknisi (multi) dari `master_karyawans` (jabatan teknis, aktif). Tabel menampilkan teknisi, jumlah item, status; pencarian tersedia. **Riwayat foto** per surat jalan dapat dilihat (thumbnail + foto asli, tipe checkout/checkin, user, waktu, checklist).
+- **Teknisi (mobile)**: scan/input kode surat jalan, lihat detail & item, checklist kondisi, foto checkout/checkin, input barang susulan. Foto dikompres di client & server; server menyimpan foto + thumbnail. Jika surat jalan **tidak** memiliki teknisi bertugas (akun login) → teknisi mana pun boleh checkout/checkin; jika ada penugasan, hanya teknisi yang ditugaskan (atau admin/owner) yang diizinkan.
+- **Endpoint terkait**: scan surat jalan, checkout, checkin, barang susulan, dan `GET v1/surat-jalan/{suratJalan}/photos` (riwayat foto).
 
-Backend Framework: Laravel 11+ (PHP 8.3+).
+### F. Penjadwalan (Crew & Event)
+Penjadwalan/matriks operasional crew, armada, dan alat (sesuai modul jadwal operasional yang tersedia).
 
-Autentikasi API: Laravel Sanctum (Stateful / Bearer Token).
+### G. Invoice & Keuangan
+Invoice dari operasional/order, pencatatan transaksi/pembayaran (DP/pelunasan/piutang/hutang/biaya), ringkasan keuangan.
 
-Database Management System (DBMS): MySQL 8.0+ / MariaDB.
+### H. Laporan
+Ringkasan/rekap operasional dan keuangan; ekspor data (mis. CSV transaksi) sesuai endpoint yang tersedia.
 
-Offline Storage (Mobile Field Checklist): IndexedDB / LocalForage (untuk penyimpanan sementara foto & checklist di lokasi minim sinyal).
+### I. User Management & Akses
+- Role utama: **Owner**, **Admin**, **Teknisi** (sumber kebenaran `role_id` → `roles`). Middleware `check.role` membatasi akses.
+- Owner dapat mengelola akun pengguna (list/create/update/delete, pilih role) via API/UI; tidak dapat menghapus diri sendiri.
+- Akun teknisi dapat dibuat/ditautkan dari form Data Karyawan.
 
-Image Processing Engine: Client-side WebP Compression (browser-image-compression) sebelum diunggah ke server.
+## 5. Skema Database (Ringkasan Implementasi Aktual)
+*Nama tabel mengikuti migration (umumnya plural). Detail kolom lengkap lihat `backend/database/migrations`.*
 
-3. PANDUAN STYLE DESIGN (CORPORATE MINIMALIST BLUE)
-Sistem ini menggunakan gaya Corporate Minimalist White & Blue yang bersih, profesional, dan memberikan ruang visual (negative space) yang lega agar nyaman digunakan dalam durasi lama.
+- **master_barangs**: barang satuan (kode unik, nama, kategori, satuan, deskripsi, foto, stok total/rusak/disewa, harga_rental, timestamps).
+- **master_pakets**: paket (kode unik, nama, kategori, sub_kategori, harga_paket, satuan default `paket`, catatan, timestamps).
+- **master_paket_items**: item paket standalone (paket_id FK, `barang_id` nullable & tidak dipakai aplikasi, `nama_item`, `qty` decimal, `satuan`, `harga`, `urutan`). Tidak bergantung ke `master_barangs`.
+- **master_karyawans**: data karyawan (+ `user_id` opsional untuk tautan akun login), status, dokumen KTP, timestamps.
+- **master_kliens**: data klien & contact persons.
+- **master_armadas**: data armada & status.
+- **master_perusahaans**: identitas & rekening perusahaan.
+- **form_orders**, **form_order_items**, **form_penawarans**, **form_penawaran_items**: order & penawaran.
+- **surat_jalans**, **surat_jalan_items**, **surat_jalan_teknisi** (pivot penugasan karyawan): surat jalan & item dari order.
+- **delivery_photos**, **delivery_item_checklists**, **delivery_additional_items**: foto checkout/checkin (path + `foto_thumb_path`), checklist kondisi, barang susulan.
+- **invoices**, **transaksi_keuangans**, **jadwal_operasionals**, dan tabel pendukung lain sesuai modul.
+- **users**, **roles** (seed owner/admin/teknisi), **personal_access_tokens** (Sanctum).
 
-Primary Color (Biru Utama): #1E40AF / #2563EB (Royal Blue) – Digunakan untuk Navbar, Button CTA, Header, dan Status Aktif.
+## 6. Deployment & Operasional
+- Template: `backend/.env.production.example`, `frontend/.env.production.example`. CORS dikonfigurasi via `CORS_ALLOWED_ORIGINS`.
+- Seeder produksi: `php artisan db:seed --class=ProductionSeeder` (wajib `OWNER_EMAIL`, `OWNER_PASSWORD` ≥ 12).
+- Backup DB: `scripts/dump-db.ps1`, `scripts/dump-db.sh` (output `backups/`, di-ignore git).
+- Panduan & checklist: `docs/DEPLOYMENT.md`.
+- Aset desain besar (`Design System Part 1.pdf`, `design system/`) tidak di-commit; pertimbangkan Git LFS bila perlu.
 
-Secondary Color (Biru Muda): #EFF6FF / #DBEAFE (Soft Blue Tint) – Digunakan untuk background card aktif, hover state, dan badge netral.
-
-Background Utama: #F8FAFC (Slate Very Light Gray) – Memberikan kontras lembut di mata.
-
-Card & Container Background: #FFFFFF (Pure White) dengan border tipis #E2E8F0 dan bayangan halus (shadow-sm).
-
-Text & Typography: Teks utama #0F172A (Slate Dark), Teks sekunder #64748B (Muted Gray). Font: Inter / Roboto (Sans-serif).
-
-Negative Space: Jarak antar elemen longgar (gap-6, padding-6/8) untuk menghindari kesan padat/sesak.
-
-4. DOKUMENTASI FITUR UTAMA (SHORT SUMMARY)
-A. Dashboard (Overview Operasional & Keuangan)
-Memberikan ringkasan helikopter bisnis bagi Owner:
-
-Status Teknisi Counters: Kartu indikator SDM bertugas (75), standby (25), dan izin (10).
-
-Projects Active: Monitoring proyek berjalan di berbagai lokasi (18 Lokasi) seperti Tiga Kreasi (HK Tower), Artotel, dan Fairmont.
-
-Keuangan Ringkas: Nilai Piutang Klien (Rp 4.325.867.000), Hutang Vendor (Rp 1.325.867.000), dan grafik arus kas bulanan.
-
-Action Tables: Ringkasan Form Order Belum Confirm dan Invoice Belum Lunas.
-
-B. Database (Master Data Management - FOKUS UTAMA OWNER)
-Modul utama tempat Owner menginput dan mengelola seluruh aset dasar perusahaan:
-
-Data Barang (Satuan & Paket):
-
-Mode SATUAN: Input Kode, Nama Barang, Kategori (Camera, Sound, Lighting, TV, LED, Hybrid, Production), Spesifikasi, Upload Foto, Total Stok, Stok Rusak, Di Sewa, dan Harga Rental/hari.
-
-Mode PAKET: Kombinasi beberapa barang satuan menjadi 1 paket harga (contoh: Hybrid System Standar).
-
-Data Karyawan: Input Nama, NIK, No KTP, Jabatan, No Telp/WA, No Rekening Bank, Upload Foto KTP, dan Status (Aktif / Non-Aktif).
-
-Data Klien: Input Nama Klien, Nama Perusahaan (PT/CV), Alamat, Multiple Contact Persons (CP1, CP2, CP3), NPWP, dan Kategori.
-
-Data Armada: Pengelolaan kendaraan operasional (Mobil Box, Pickup, Blindvan), Plat Nomor, Status STNK, Driver, dan Status Jalan/Standby.
-
-Data Perusahaan: Pengaturan Identitas Penta Tri Saka, Alamat Head Office, KOP Surat Resmi, Logo, dan Rekening Bank.
-
-C. Form Order (Pemesanan Masuk)
-Input pesanan sewa awal dari klien mencakup data event, lokasi/venue, ruangan/lantai, tanggal load-in/load-out, serta daftar alat yang disewa.
-
-D. Form Penawaran (Quotation)
-Modul untuk mengonversi Form Order menjadi dokumen resmi Surat Penawaran Harga (Quotation) ber-KOP perusahaan yang siap dicetak ke PDF atau dikirim via WA.
-
-E. Surat Jalan & Field Checklist
-Owner/Admin View: Penerbitan Surat Jalan dengan nomor otomatis (SJ-001), penugasan tim teknisi/driver, jam mulai/selesai, serta daftar barang bawaan.
-
-Teknisi Field Checklist: Antarmuka mobile untuk verifikasi barang berangkat (check-out) & kembali (check-in), input foto kondisi barang (auto-WebP), serta penambahan barang susulan (ad-hoc) di lapangan.
-
-F. Penjadwalan (Crew & Event Matrix)
-Tabel matriks kalender yang memetakan:
-
-Teknisi Bertugas: Lokasi venue, ruangan, tim kameramen/soundman, dan jobdesk alat.
-
-Teknisi Standby & Izin: Lokasi standby (misal: Baladewa, Narada), tugas sebelumnya, jam selesai, dan alasan izin.
-
-G. Invoice & Keuangan
-Penerbitan tagihan resmi berdasarkan Surat Jalan selesai, pencatatan status pembayaran (Unpaid/DP/Paid), serta pencatatan biaya operasional event.
-
-H. Laporan
-Pusat analitik bulanan/tahunan untuk mengekspor rekapitulasi operasional, utilitas alat, serta laporan laba/rugi ke format Excel/PDF.
-
-5. SKEMA DATABASE (DATABASE SCHEMA RELATIONS)
-SQL
--- 1. Master Barang Satuan
-CREATE TABLE master_barang (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    kode_barang VARCHAR(50) UNIQUE NOT NULL,
-    nama_barang VARCHAR(255) NOT NULL,
-    kategori ENUM('Camera', 'Sound System', 'Lighting System', 'TV', 'LED Videotron', 'Streaming & Hybrid', 'Produksi') NOT NULL,
-    deskripsi TEXT,
-    foto_path VARCHAR(255),
-    jumlah_total INT DEFAULT 0,
-    jumlah_rusak INT DEFAULT 0,
-    di_sewa INT DEFAULT 0,
-    harga_rental DECIMAL(15,2) DEFAULT 0,
-    created_at TIMESTAMP,
-    updated_at TIMESTAMP
-);
-
--- 2. Master Barang Paket
-CREATE TABLE master_paket (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    kode_paket VARCHAR(50) UNIQUE NOT NULL,
-    nama_paket VARCHAR(255) NOT NULL,
-    kategori VARCHAR(100),
-    harga_paket DECIMAL(15,2) DEFAULT 0,
-    created_at TIMESTAMP,
-    updated_at TIMESTAMP
-);
-
--- 3. Detail Item Paket
-CREATE TABLE master_paket_items (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    paket_id BIGINT,
-    barang_id BIGINT,
-    qty INT DEFAULT 1,
-    FOREIGN KEY (paket_id) REFERENCES master_paket(id) ON DELETE CASCADE,
-    FOREIGN KEY (barang_id) REFERENCES master_barang(id) ON DELETE CASCADE
-);
-
--- 4. Master Karyawan
-CREATE TABLE master_karyawan (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    nama_lengkap VARCHAR(255) NOT NULL,
-    nik VARCHAR(50),
-    no_ktp VARCHAR(50),
-    jabatan VARCHAR(100),
-    no_telp VARCHAR(50),
-    no_rekening VARCHAR(100),
-    ktp_path VARCHAR(255),
-    status ENUM('Aktif', 'Non-Aktif') DEFAULT 'Aktif',
-    created_at TIMESTAMP,
-    updated_at TIMESTAMP
-);
-
--- 5. Master Klien
-CREATE TABLE master_klien (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    nama_klien VARCHAR(255) NOT NULL,
-    nama_perusahaan VARCHAR(255),
-    alamat TEXT,
-    cp1_nama VARCHAR(100), cp1_telp VARCHAR(50),
-    cp2_nama VARCHAR(100), cp2_telp VARCHAR(50),
-    cp3_nama VARCHAR(100), cp3_telp VARCHAR(50),
-    npwp VARCHAR(100),
-    created_at TIMESTAMP,
-    updated_at TIMESTAMP
-);
-6. INSTRUKSI EKSEKUSI CODEX / DEVELOPER
-Fokus Utama Saat Ini: Selesaikan seluruh Form Input dan CRUD pada Modul DATABASE (Master Data) agar Owner dapat langsung menginput data nyata barang, karyawan, dan klien.
-
-Gunakan Corporate Minimalist White & Blue Design System pada seluruh komponen UI.
-
-Pastikan seluruh modal input (Tambah Barang, Tambah Karyawan, Tambah Klien) berfungsi dengan validasi form yang ketat dan feedback visual yang jelas.
+## 7. Fokus & Catatan Lanjutan
+- Konfirmasi owner: kebijakan final item paket standalone (tidak bisa disewa satuan).
+- Penyempurnaan: mode offline checklist, konflik penjadwalan, ekspor Excel/PDF lanjutan, audit log, penguatan test hak akses & cakupan fitur.
+- Deploy ke hosting mengikuti `docs/DEPLOYMENT.md` (saat infrastruktur tersedia).
