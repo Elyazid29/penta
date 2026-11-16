@@ -4,12 +4,12 @@ namespace App\Http\Requests;
 
 use Illuminate\Validation\Rule;
 
-class UpdateinvoicesRequest extends StoreinvoicesRequest
+class UpdateInvoiceRequest extends StoreInvoiceRequest
 {
     public function rules(): array
     {
         $rules = parent::rules();
-        $rules['nomor_invoices'] = ['required', 'string', 'max:50', Rule::unique('invoices', 'nomor_invoices')->ignore($this->route('invoice'))];
+        $rules['nomor_invoice'] = ['required', 'string', 'max:50', Rule::unique('invoices', 'nomor_invoice')->ignore($this->route('invoice'))];
 
         return $rules;
     }
