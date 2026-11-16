@@ -13,7 +13,7 @@ class JadwalOperasionalController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = JadwalOperasional::with(['order', 'karyawan', 'armada'])->latest('tanggal_mulai');
+        $query = JadwalOperasional::with(['order', 'karyawan', 'armada', 'alats'])->latest('tanggal_mulai');
 
         $query->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')));
         $query->when($request->filled('karyawan_id'), fn ($q) => $q->where('karyawan_id', $request->integer('karyawan_id')));
@@ -41,7 +41,10 @@ class JadwalOperasionalController extends Controller
             return $conflict;
         }
 
-        return response()->json(['data' => JadwalOperasional::create($data)->load(['order', 'karyawan', 'armada'])], 201);
+        $jadwal = JadwalOperasional::create($this->withoutAlats($data));
+        $this->syncAlats($jadwal, $data['alats'] ?? []);
+
+        return response()->json(['data' => $jadwal->load(['order', 'karyawan', 'armada', 'alats'])], 201);
     }
 
     public function update(UpdateJadwalOperasionalRequest $request, JadwalOperasional $jadwalOperasional): JsonResponse
@@ -52,9 +55,35 @@ class JadwalOperasionalController extends Controller
             return $conflict;
         }
 
-        $jadwalOperasional->update($data);
+        $jadwalOperasional->update($this->withoutAlats($data));
+        if (array_key_exists('alats', $data)) {
+            $this->syncAlats($jadwalOperasional, $data['alats'] ?? []);
+        }
 
-        return response()->json(['data' => $jadwalOperasional->refresh()->load(['order', 'karyawan', 'armada'])]);
+        return response()->json(['data' => $jadwalOperasional->refresh()->load(['order', 'karyawan', 'armada', 'alats'])]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function withoutAlats(array $data): array
+    {
+        unset($data['alats']);
+
+        return $data;
+    }
+
+    /**
+     * @param  array<int, array{barang_id: int, qty?: int|null}>  $alats
+     */
+    private function syncAlats(JadwalOperasional $jadwal, array $alats): void
+    {
+        $sync = [];
+        foreach ($alats as $alat) {
+            $sync[(int) $alat['barang_id']] = ['qty' => (int) ($alat['qty'] ?? 1)];
+        }
+        $jadwal->alats()->sync($sync);
     }
 
     public function destroy(JadwalOperasional $jadwalOperasional): JsonResponse

@@ -6,6 +6,7 @@ use App\Models\FormOrder;
 use App\Models\Invoice;
 use App\Models\JadwalOperasional;
 use App\Models\MasterArmada;
+use App\Models\MasterBarang;
 use App\Models\MasterKaryawan;
 use App\Models\MasterKlien;
 use App\Models\Role;
@@ -237,6 +238,43 @@ class FinanceAndScheduleApiTest extends TestCase
         $this->getJson('/api/v1/jadwal-operasional?from=2026-11-19&to=2026-11-21')
             ->assertOk()
             ->assertJsonCount(1, 'data.data');
+    }
+
+    public function test_jadwal_operasional_can_assign_alats(): void
+    {
+        $adminRole = Role::query()->where('name', 'admin')->firstOrFail();
+        Sanctum::actingAs(User::factory()->create(['role_id' => $adminRole->id]));
+        $order = $this->makeOrder();
+        $barang = MasterBarang::query()->create([
+            'kode_barang' => 'BRG-JAD-001',
+            'nama_barang' => 'Speaker',
+            'kategori' => 'Sound System',
+            'satuan' => 'unit',
+            'jumlah_total' => 10,
+            'jumlah_rusak' => 0,
+            'di_sewa' => 0,
+            'harga_rental' => 100000,
+        ]);
+
+        $response = $this->postJson('/api/v1/jadwal-operasional', [
+            'form_order_id' => $order->id,
+            'tanggal_mulai' => '2026-11-26 08:00:00',
+            'tanggal_selesai' => '2026-11-26 17:00:00',
+            'status' => 'Terjadwal',
+            'alats' => [
+                ['barang_id' => $barang->id, 'qty' => 2],
+            ],
+        ]);
+
+        $response->assertCreated()
+            ->assertJsonCount(1, 'data.alats')
+            ->assertJsonPath('data.alats.0.id', $barang->id)
+            ->assertJsonPath('data.alats.0.pivot.qty', 2);
+
+        $this->assertDatabaseHas('jadwal_operasional_alats', [
+            'master_barang_id' => $barang->id,
+            'qty' => 2,
+        ]);
     }
 
     private function makeOrder(): FormOrder

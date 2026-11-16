@@ -25,7 +25,8 @@
 - [ ] Mode offline checklist & sinkronisasi
 - [x] Deteksi konflik jadwal crew/armada (tolak bentrok rentang waktu, abaikan status Dibatalkan)
 - [x] Filter jadwal operasional (status, karyawan, armada, order, rentang waktu)
-- [ ] Penyempurnaan matrix penjadwalan crew/armada/alat (tampilan matrix, dukungan penugasan alat)
+- [x] Dukungan penugasan alat (barang) pada jadwal operasional (API + relasi)
+- [ ] Penyempurnaan tampilan matrix penjadwalan crew/armada/alat (UI)
 
 ## Fase 3 — Keuangan & Laporan
 - [x] Modul Invoice, transaksi keuangan, dan ringkasan/laporan (termasuk ekspor CSV transaksi) — sesuai implementasi saat ini
@@ -37,7 +38,7 @@
 - [ ] Ekspor Excel/PDF operasional & keuangan lanjutan (format berkas khusus)
 
 ## Quality & Deployment
-- [x] Feature test API (35 test, 181 assertion lulus per verifikasi terakhir): auth (login/me/logout), akses terproteksi, validasi invoice/transaksi/jadwal/penawaran, finance/schedule, otorisasi & user management, delivery (scan/assignment, checkout/checkin, barang susulan), surat jalan auto-item & invoice otomatis saat selesai, form order create/update, kalkulasi & update penawaran, sinkronisasi pembayaran & overdue (termasuk refresh), laporan (summary, CSV transaksi/invoice), filter jadwal, absensi role. Rute duplikat surat-jalan/jadwal dibersihkan (admin/owner).
+- [x] Feature test API (36 test, 186 assertion lulus per verifikasi terakhir): auth (login/me/logout), akses terproteksi, validasi invoice/transaksi/jadwal/penawaran, finance/schedule, otorisasi & user management, delivery (scan/assignment, checkout/checkin, barang susulan), surat jalan auto-item & invoice otomatis saat selesai, form order create/update, kalkulasi & update penawaran, sinkronisasi pembayaran & overdue (termasuk refresh), laporan (summary, CSV transaksi/invoice), filter & penugasan alat jadwal, absensi role. Rute duplikat surat-jalan/jadwal dibersihkan (admin/owner).
 - [x] Template env produksi (`backend/.env.production.example`, `frontend/.env.production.example`), CORS env-driven
 - [x] Script backup database (`scripts/dump-db.ps1`, `scripts/dump-db.sh`)
 - [x] Panduan deploy & post-deploy checklist (`docs/DEPLOYMENT.md`)

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class JadwalOperasional extends Model
 {
@@ -22,5 +23,12 @@ class JadwalOperasional extends Model
     public function armada(): BelongsTo
     {
         return $this->belongsTo(MasterArmada::class);
+    }
+
+    public function alats(): BelongsToMany
+    {
+        return $this->belongsToMany(MasterBarang::class, 'jadwal_operasional_alats', 'jadwal_operasional_id', 'master_barang_id')
+            ->withPivot('qty')
+            ->withTimestamps();
     }
 }

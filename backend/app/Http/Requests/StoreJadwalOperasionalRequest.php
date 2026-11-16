@@ -29,6 +29,9 @@ class StoreJadwalOperasionalRequest extends FormRequest
             'jobdesk' => ['nullable', 'string', 'max:255'],
             'status' => ['required', 'in:Terjadwal,Berjalan,Selesai,Dibatalkan'],
             'catatan' => ['nullable', 'string'],
+            'alats' => ['nullable', 'array'],
+            'alats.*.barang_id' => ['required', 'exists:master_barangs,id'],
+            'alats.*.qty' => ['nullable', 'integer', 'min:1'],
         ];
     }
 }
