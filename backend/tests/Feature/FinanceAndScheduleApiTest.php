@@ -85,6 +85,36 @@ class FinanceAndScheduleApiTest extends TestCase
         $this->assertSame('Paid', $invoice->status);
     }
 
+    public function test_invoice_becomes_overdue_when_past_due_and_not_fully_paid(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+        $order = $this->makeOrder();
+        $invoice = Invoice::query()->create([
+            'nomor_invoice' => 'INV-OVERDUE-001',
+            'form_order_id' => $order->id,
+            'tanggal_invoice' => '2026-10-01',
+            'jatuh_tempo' => now()->subDay()->toDateString(),
+            'subtotal' => 500000,
+            'diskon' => 0,
+            'pajak' => 0,
+            'total' => 500000,
+            'dibayar' => 0,
+            'status' => 'Unpaid',
+        ]);
+
+        $this->postJson('/api/v1/transaksi-keuangan', [
+            'invoice_id' => $invoice->id,
+            'tanggal' => '2026-10-02',
+            'jenis' => 'Pemasukan',
+            'kategori' => 'DP',
+            'jumlah' => 100000,
+        ])->assertCreated();
+
+        $invoice->refresh();
+        $this->assertSame('Overdue', $invoice->status);
+        $this->assertSame('100000.00', (string) $invoice->dibayar);
+    }
+
     public function test_invoice_can_be_created_with_correct_fields_and_legacy_aliases(): void
     {
         Sanctum::actingAs(User::factory()->create());

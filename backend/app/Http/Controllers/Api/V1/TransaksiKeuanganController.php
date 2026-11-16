@@ -68,10 +68,15 @@ class TransaksiKeuanganController extends Controller
         $total = (float) $invoice->total;
 
         $status = 'Unpaid';
-        if ($dibayar >= $total && $total > 0) {
+        $isPaid = $total > 0 ? $dibayar >= $total : $dibayar > 0;
+        if ($isPaid) {
             $status = 'Paid';
         } elseif ($dibayar > 0) {
             $status = 'DP';
+        }
+
+        if ($status !== 'Paid' && $invoice->jatuh_tempo && $invoice->jatuh_tempo->isPast()) {
+            $status = 'Overdue';
         }
 
         $invoice->forceFill([
