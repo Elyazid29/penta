@@ -63,4 +63,52 @@ class FormOrderApiTest extends TestCase
 
         $this->assertSame(1, FormOrder::query()->count());
     }
+
+    public function test_form_order_validation_rejects_invalid_payload(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+        $klien = MasterKlien::query()->create(['nama_klien' => 'PT Validasi']);
+
+        $this->postJson('/api/v1/form-order', [
+            'nomor_order' => 'ORD-BAD',
+            'klien_id' => $klien->id,
+            'nama_event' => 'Event',
+            'venue' => 'Jakarta',
+            'load_in' => '2026-11-21 18:00:00',
+            'load_out' => '2026-11-20 08:00:00',
+            'status' => 'Draft',
+            'items' => [],
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['load_out', 'items']);
+
+        $this->postJson('/api/v1/form-order', [
+            'nomor_order' => 'ORD-BAD-2',
+            'klien_id' => 999999,
+            'nama_event' => 'Event',
+            'venue' => 'Jakarta',
+            'load_in' => '2026-11-20 08:00:00',
+            'load_out' => '2026-11-21 18:00:00',
+            'status' => 'Unknown',
+            'items' => [['nama_item' => 'X', 'qty' => 0, 'harga_harian' => -1]],
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['klien_id', 'status', 'items.0.qty', 'items.0.harga_harian']);
+    }
+
+    public function test_form_order_can_be_deleted(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+        $klien = MasterKlien::query()->create(['nama_klien' => 'PT Hapus']);
+        $order = FormOrder::query()->create([
+            'nomor_order' => 'ORD-DEL-001',
+            'klien_id' => $klien->id,
+            'nama_event' => 'Event',
+            'venue' => 'Jakarta',
+            'load_in' => '2026-11-20 08:00:00',
+            'load_out' => '2026-11-21 18:00:00',
+            'status' => 'Draft',
+        ]);
+
+        $this->deleteJson('/api/v1/form-order/'.$order->id)->assertNoContent();
+        $this->assertDatabaseMissing('form_orders', ['id' => $order->id]);
+    }
 }
