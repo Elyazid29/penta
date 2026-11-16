@@ -73,8 +73,13 @@ class LaporanApiTest extends TestCase
             ->assertJsonPath('data.pemasukan', 1000000)
             ->assertJsonPath('data.pengeluaran', 400000)
             ->assertJsonPath('data.saldo', 600000)
+            ->assertJsonPath('data.laba_rugi', 600000)
             ->assertJsonPath('data.piutang', 1250000)
-            ->assertJsonPath('data.invoice_overdue', 1);
+            ->assertJsonPath('data.invoice_overdue', 1)
+            ->assertJsonPath('data.pemasukan_per_kategori.0.kategori', 'DP')
+            ->assertJsonPath('data.pemasukan_per_kategori.0.total', 1000000)
+            ->assertJsonPath('data.pengeluaran_per_kategori.0.kategori', 'Operasional')
+            ->assertJsonPath('data.pengeluaran_per_kategori.0.total', 400000);
     }
 
     public function test_laporan_invoices_csv_can_be_downloaded(): void

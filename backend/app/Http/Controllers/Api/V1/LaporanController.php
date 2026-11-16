@@ -26,15 +26,40 @@ class LaporanController extends Controller
             ->selectRaw('COALESCE(SUM(CASE WHEN total > dibayar THEN total - dibayar ELSE 0 END), 0) as piutang')
             ->value('piutang');
 
+        $pemasukanPerKategori = TransaksiKeuangan::query()
+            ->selectRaw("COALESCE(NULLIF(kategori, ''), 'Tanpa Kategori') as kategori, SUM(jumlah) as total")
+            ->where('jenis', 'Pemasukan')
+            ->groupBy('kategori')
+            ->orderByDesc('total')
+            ->get()
+            ->map(fn ($row) => ['kategori' => $row->kategori, 'total' => (float) $row->total])
+            ->values()
+            ->all();
+
+        $pengeluaranPerKategori = TransaksiKeuangan::query()
+            ->selectRaw("COALESCE(NULLIF(kategori, ''), 'Tanpa Kategori') as kategori, SUM(jumlah) as total")
+            ->where('jenis', 'Pengeluaran')
+            ->groupBy('kategori')
+            ->orderByDesc('total')
+            ->get()
+            ->map(fn ($row) => ['kategori' => $row->kategori, 'total' => (float) $row->total])
+            ->values()
+            ->all();
+
+        $saldo = $pemasukan - $pengeluaran;
+
         return response()->json(['data' => [
             'orders' => FormOrder::count(),
             'invoices' => Invoice::count(),
             'barang' => MasterBarang::count(),
             'pemasukan' => $pemasukan,
             'pengeluaran' => $pengeluaran,
-            'saldo' => $pemasukan - $pengeluaran,
+            'saldo' => $saldo,
+            'laba_rugi' => $saldo,
             'piutang' => $piutang,
             'invoice_overdue' => Invoice::query()->where('status', 'Overdue')->count(),
+            'pemasukan_per_kategori' => $pemasukanPerKategori,
+            'pengeluaran_per_kategori' => $pengeluaranPerKategori,
         ]]);
     }
 

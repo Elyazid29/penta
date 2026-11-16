@@ -32,13 +32,13 @@
 - [x] Modul Invoice, transaksi keuangan, dan ringkasan/laporan (termasuk ekspor CSV transaksi) — sesuai implementasi saat ini
 - [x] Invoice otomatis dibuat saat Surat Jalan berstatus `Selesai` (dari total item order, jika belum ada invoice untuk order)
 - [x] Sinkronisasi & refresh status pembayaran invoice (Unpaid/DP/Paid/Overdue) dari transaksi, jatuh tempo, serta saat akses invoice/laporan
-- [x] Ringkasan laporan keuangan: saldo (pemasukan-pengeluaran), piutang berjalan, jumlah invoice overdue
+- [x] Ringkasan laporan keuangan: saldo/laba-rugi (pemasukan-pengeluaran), piutang berjalan, jumlah invoice overdue, rincian pemasukan/pengeluaran per kategori
 - [x] Ekspor CSV laporan: transaksi (`transactions.csv`) & invoice (`invoices.csv`)
-- [ ] Pelacakan hutang/biaya event lebih rinci & laba/rugi lanjutan
+- [ ] Pelacakan hutang/biaya per event lebih rinci (kaitkan biaya ke order/event)
 - [ ] Ekspor Excel/PDF operasional & keuangan lanjutan (format berkas khusus)
 
 ## Quality & Deployment
-- [x] Feature test API (36 test, 186 assertion lulus per verifikasi terakhir): auth (login/me/logout), akses terproteksi, validasi invoice/transaksi/jadwal/penawaran, finance/schedule, otorisasi & user management, delivery (scan/assignment, checkout/checkin, barang susulan), surat jalan auto-item & invoice otomatis saat selesai, form order create/update, kalkulasi & update penawaran, sinkronisasi pembayaran & overdue (termasuk refresh), laporan (summary, CSV transaksi/invoice), filter & penugasan alat jadwal, absensi role. Rute duplikat surat-jalan/jadwal dibersihkan (admin/owner).
+- [x] Feature test API (36 test, 191 assertion lulus per verifikasi terakhir): auth (login/me/logout), akses terproteksi, validasi invoice/transaksi/jadwal/penawaran, finance/schedule, otorisasi & user management, delivery (scan/assignment, checkout/checkin, barang susulan), surat jalan auto-item & invoice otomatis saat selesai, form order create/update, kalkulasi & update penawaran, sinkronisasi pembayaran & overdue (termasuk refresh), laporan (summary laba-rugi & rincian kategori, CSV transaksi/invoice), filter & penugasan alat jadwal, absensi role. Rute duplikat surat-jalan/jadwal dibersihkan (admin/owner).
 - [x] Template env produksi (`backend/.env.production.example`, `frontend/.env.production.example`), CORS env-driven
 - [x] Script backup database (`scripts/dump-db.ps1`, `scripts/dump-db.sh`)
 - [x] Panduan deploy & post-deploy checklist (`docs/DEPLOYMENT.md`)
