@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\DeliveryPhoto;
 use App\Models\FormOrder;
+use App\Models\Invoice;
 use App\Models\MasterKaryawan;
 use App\Models\MasterKlien;
 use App\Models\Role;
@@ -144,6 +145,40 @@ class SuratJalanAndDeliveryFlowTest extends TestCase
             'nama_barang' => 'Speaker Aktif',
             'keterangan' => 'Kembali lengkap',
         ]);
+    }
+
+    public function test_completing_surat_jalan_creates_invoice_for_order(): void
+    {
+        Sanctum::actingAs($this->userWithRole('admin'));
+        $order = $this->makeOrderWithItems(); // 2 x 150000 = 300000
+        $suratJalan = SuratJalan::query()->create([
+            'nomor_surat_jalan' => 'SJ-DONE-001',
+            'form_order_id' => $order->id,
+            'tanggal_berangkat' => now(),
+            'status' => 'Draft',
+        ]);
+
+        $this->putJson("/api/v1/surat-jalan/{$suratJalan->id}", [
+            'nomor_surat_jalan' => 'SJ-DONE-001',
+            'form_order_id' => $order->id,
+            'tanggal_berangkat' => now()->toDateTimeString(),
+            'status' => 'Selesai',
+        ])->assertOk();
+
+        $invoice = Invoice::query()->where('form_order_id', $order->id)->first();
+        $this->assertNotNull($invoice);
+        $this->assertSame('300000.00', (string) $invoice->total);
+        $this->assertSame('0.00', (string) $invoice->dibayar);
+        $this->assertSame('Unpaid', $invoice->status);
+
+        // tidak duplikat saat update lagi
+        $this->putJson("/api/v1/surat-jalan/{$suratJalan->id}", [
+            'nomor_surat_jalan' => 'SJ-DONE-001',
+            'form_order_id' => $order->id,
+            'tanggal_berangkat' => now()->toDateTimeString(),
+            'status' => 'Selesai',
+        ])->assertOk();
+        $this->assertSame(1, Invoice::query()->where('form_order_id', $order->id)->count());
     }
 
     private function userWithRole(string $roleName): User

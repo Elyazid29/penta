@@ -6,10 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreSuratJalanRequest;
 use App\Http\Requests\UpdateSuratJalanRequest;
 use App\Models\FormOrder;
+use App\Models\Invoice;
 use App\Models\MasterKaryawan;
 use App\Models\SuratJalan;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class SuratJalanController extends Controller
 {
@@ -34,6 +36,8 @@ class SuratJalanController extends Controller
                 $suratJalan->teknisi()->sync($request->validated('teknisi_ids') ?? []);
             }
 
+            $this->ensureInvoiceForCompletedSuratJalan($suratJalan);
+
             return $suratJalan;
         });
 
@@ -55,6 +59,8 @@ class SuratJalanController extends Controller
             if ($request->has('teknisi_ids')) {
                 $suratJalan->teknisi()->sync($request->validated('teknisi_ids') ?? []);
             }
+
+            $this->ensureInvoiceForCompletedSuratJalan($suratJalan->refresh());
         });
 
         return response()->json(['data' => $this->present($suratJalan->refresh()->load(['order', 'items.barang', 'teknisi']))]);
@@ -123,5 +129,40 @@ class SuratJalanController extends Controller
         ]));
 
         return $suratJalan;
+    }
+
+    /**
+     * Saat surat jalan selesai, buat invoice draft untuk order terkait bila belum ada.
+     */
+    private function ensureInvoiceForCompletedSuratJalan(SuratJalan $suratJalan): void
+    {
+        if ($suratJalan->status !== 'Selesai') {
+            return;
+        }
+
+        if (Invoice::query()->where('form_order_id', $suratJalan->form_order_id)->exists()) {
+            return;
+        }
+
+        $order = FormOrder::with('items')->findOrFail($suratJalan->form_order_id);
+        $subtotal = (float) $order->items->sum(fn ($item): float => (float) $item->qty * (float) $item->harga_harian);
+
+        $nomor = 'INV-SJ-'.$suratJalan->id.'-'.now()->format('Ymd');
+        if (Invoice::query()->where('nomor_invoice', $nomor)->exists()) {
+            $nomor .= '-'.Str::upper(Str::random(4));
+        }
+
+        Invoice::query()->create([
+            'nomor_invoice' => $nomor,
+            'form_order_id' => $order->id,
+            'tanggal_invoice' => now()->toDateString(),
+            'subtotal' => $subtotal,
+            'diskon' => 0,
+            'pajak' => 0,
+            'total' => $subtotal,
+            'dibayar' => 0,
+            'status' => 'Unpaid',
+            'catatan' => 'Dibuat otomatis saat surat jalan selesai (SJ: '.$suratJalan->nomor_surat_jalan.').',
+        ]);
     }
 }
