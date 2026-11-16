@@ -23,7 +23,8 @@
 - [x] Riwayat foto per surat jalan (endpoint + tampilan admin, thumbnail/foto asli)
 - [x] Aturan akses: tanpa penugasan teknisi → teknisi mana pun boleh; bila ditugaskan → terbatas ke yang ditugaskan/admin/owner
 - [ ] Mode offline checklist & sinkronisasi
-- [ ] Penyempurnaan matrix penjadwalan crew/armada/alat & deteksi konflik
+- [x] Deteksi konflik jadwal crew/armada (tolak bentrok rentang waktu, abaikan status Dibatalkan)
+- [ ] Penyempurnaan matrix penjadwalan crew/armada/alat (tampilan matrix, dukungan alat, filter)
 
 ## Fase 3 — Keuangan & Laporan
 - [x] Modul Invoice, transaksi keuangan, dan ringkasan/laporan (termasuk ekspor CSV transaksi) — sesuai implementasi saat ini
@@ -33,13 +34,13 @@
 - [ ] Ekspor Excel/PDF operasional & keuangan lanjutan
 
 ## Quality & Deployment
-- [x] Feature test API (18 test, 80 assertion lulus per verifikasi terakhir): perbaikan validasi request invoice/transaksi/jadwal, tes finance/schedule, tes otorisasi & user management, akses delivery teknisi vs CRUD surat jalan, surat jalan auto-item dari order, checkout delivery (izin teknisi/admin + simpan foto/checklist). Rute duplikat surat-jalan/jadwal dibersihkan (admin/owner).
+- [x] Feature test API (20 test, 89 assertion lulus per verifikasi terakhir): validasi invoice/transaksi/jadwal, finance/schedule, otorisasi & user management, akses delivery teknisi vs CRUD surat jalan, surat jalan auto-item, checkout/checkin delivery (+ foto/checklist), deteksi konflik jadwal. Rute duplikat surat-jalan/jadwal dibersihkan (admin/owner).
 - [x] Template env produksi (`backend/.env.production.example`, `frontend/.env.production.example`), CORS env-driven
 - [x] Script backup database (`scripts/dump-db.ps1`, `scripts/dump-db.sh`)
 - [x] Panduan deploy & post-deploy checklist (`docs/DEPLOYMENT.md`)
 - [x] Flowchart surat jalan & teknisi (`docs/flowchart-*.png`)
-- [ ] Perluasan cakupan test (hak akses role, edge case modul lain)
-- [ ] Uji konflik penjadwalan crew/aset
+- [ ] Perluasan cakupan test (hak akses role, edge case modul lain, barang susulan, penawaran/form order)
+- [x] Deteksi & uji konflik penjadwalan crew/armada (tes API)
 - [ ] Uji perangkat mobile & skenario offline
 - [ ] Audit log
 - [ ] Deploy produksi (menunggu hosting/infrastruktur) — ikuti `docs/DEPLOYMENT.md`

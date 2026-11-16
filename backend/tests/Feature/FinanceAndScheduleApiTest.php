@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Models\FormOrder;
 use App\Models\Invoice;
 use App\Models\JadwalOperasional;
+use App\Models\MasterArmada;
+use App\Models\MasterKaryawan;
 use App\Models\MasterKlien;
 use App\Models\Role;
 use App\Models\TransaksiKeuangan;
@@ -89,6 +91,47 @@ class FinanceAndScheduleApiTest extends TestCase
             'status' => 'Terjadwal',
         ]);
         $this->assertSame(1, JadwalOperasional::query()->count());
+    }
+
+    public function test_jadwal_operasional_rejects_conflicting_karyawan_or_armada(): void
+    {
+        $adminRole = Role::query()->where('name', 'admin')->firstOrFail();
+        Sanctum::actingAs(User::factory()->create(['role_id' => $adminRole->id]));
+        $order = $this->makeOrder();
+        $karyawan = MasterKaryawan::query()->create(['nama_lengkap' => 'Teknisi A', 'status' => 'Aktif']);
+        $armada = MasterArmada::query()->create([
+            'jenis_kendaraan' => 'Mobil Box',
+            'plat_nomor' => 'B '.uniqid().' XX',
+            'status_stnk' => 'Aktif',
+            'status_operasional' => 'Standby',
+        ]);
+
+        $this->postJson('/api/v1/jadwal-operasional', [
+            'form_order_id' => $order->id,
+            'karyawan_id' => $karyawan->id,
+            'armada_id' => $armada->id,
+            'tanggal_mulai' => '2026-11-14 08:00:00',
+            'tanggal_selesai' => '2026-11-14 12:00:00',
+            'status' => 'Terjadwal',
+        ])->assertCreated();
+
+        $this->postJson('/api/v1/jadwal-operasional', [
+            'form_order_id' => $order->id,
+            'karyawan_id' => $karyawan->id,
+            'tanggal_mulai' => '2026-11-14 10:00:00',
+            'tanggal_selesai' => '2026-11-14 14:00:00',
+            'status' => 'Terjadwal',
+        ])->assertUnprocessable()
+            ->assertJsonPath('message', 'Jadwal bentrok: karyawan sudah ditugaskan pada rentang waktu tersebut.');
+
+        $this->postJson('/api/v1/jadwal-operasional', [
+            'form_order_id' => $order->id,
+            'armada_id' => $armada->id,
+            'tanggal_mulai' => '2026-11-14 10:00:00',
+            'tanggal_selesai' => '2026-11-14 14:00:00',
+            'status' => 'Terjadwal',
+        ])->assertUnprocessable()
+            ->assertJsonPath('message', 'Jadwal bentrok: armada sudah digunakan pada rentang waktu tersebut.');
     }
 
     private function makeOrder(): FormOrder

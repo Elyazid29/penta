@@ -109,6 +109,43 @@ class SuratJalanAndDeliveryFlowTest extends TestCase
         ]);
     }
 
+    public function test_checkin_stores_photo_and_checklists(): void
+    {
+        Storage::fake('public');
+        Sanctum::actingAs($this->userWithRole('admin'));
+
+        $order = $this->makeOrderWithItems();
+        $suratJalan = SuratJalan::query()->create([
+            'nomor_surat_jalan' => 'SJ-CHECKIN-001',
+            'form_order_id' => $order->id,
+            'tanggal_berangkat' => now(),
+            'status' => 'Draft',
+        ]);
+        $suratJalan->items()->create(['nama_item' => 'Speaker Aktif', 'qty' => 2, 'status_check' => 'Belum Check-out']);
+
+        $response = $this->post('/api/v1/delivery/checkin', [
+            'surat_jalan_id' => $suratJalan->id,
+            'foto' => UploadedFile::fake()->image('kembali.jpg', 800, 600),
+            'items' => [[
+                'nama_barang' => 'Speaker Aktif',
+                'qty' => 2,
+                'status_fisik' => 'Baik',
+                'keterangan' => 'Kembali lengkap',
+            ]],
+            'catatan' => 'Selesai',
+        ], ['Accept' => 'application/json']);
+
+        $response->assertCreated()->assertJsonPath('data.tipe', 'checkin');
+        $photoId = $response->json('data.id');
+        $photo = DeliveryPhoto::query()->findOrFail($photoId);
+        Storage::disk('public')->assertExists($photo->foto_path);
+        $this->assertDatabaseHas('delivery_item_checklists', [
+            'delivery_photo_id' => $photo->id,
+            'nama_barang' => 'Speaker Aktif',
+            'keterangan' => 'Kembali lengkap',
+        ]);
+    }
+
     private function userWithRole(string $roleName): User
     {
         $role = Role::query()->where('name', $roleName)->firstOrFail();
