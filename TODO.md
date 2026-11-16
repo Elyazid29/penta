@@ -38,12 +38,12 @@
 - [ ] Ekspor Excel/PDF operasional & keuangan lanjutan (format berkas khusus)
 
 ## Quality & Deployment
-- [x] Feature test API (36 test, 191 assertion lulus per verifikasi terakhir): auth (login/me/logout), akses terproteksi, validasi invoice/transaksi/jadwal/penawaran, finance/schedule, otorisasi & user management, delivery (scan/assignment, checkout/checkin, barang susulan), surat jalan auto-item & invoice otomatis saat selesai, form order create/update, kalkulasi & update penawaran, sinkronisasi pembayaran & overdue (termasuk refresh), laporan (summary laba-rugi & rincian kategori, CSV transaksi/invoice), filter & penugasan alat jadwal, absensi role. Rute duplikat surat-jalan/jadwal dibersihkan (admin/owner).
+- [x] Feature test API (39 test, 207 assertion lulus per verifikasi terakhir): auth (login/me/logout), akses terproteksi & pembatasan role (teknisi vs admin/owner), validasi invoice/transaksi/jadwal/penawaran, finance/schedule, otorisasi & user management, delivery (scan/assignment, checkout/checkin, barang susulan), surat jalan auto-item & invoice otomatis saat selesai, form order create/update, kalkulasi & update penawaran, sinkronisasi pembayaran & overdue (termasuk refresh), laporan (summary laba-rugi & rincian kategori, CSV transaksi/invoice), filter & penugasan/update/hapus/validasi alat jadwal, absensi role. Rute duplikat surat-jalan/jadwal dibersihkan (admin/owner).
 - [x] Template env produksi (`backend/.env.production.example`, `frontend/.env.production.example`), CORS env-driven
 - [x] Script backup database (`scripts/dump-db.ps1`, `scripts/dump-db.sh`)
 - [x] Panduan deploy & post-deploy checklist (`docs/DEPLOYMENT.md`)
 - [x] Flowchart surat jalan & teknisi (`docs/flowchart-*.png`)
-- [ ] Perluasan cakupan test (edge case modul lain)
+- [ ] Perluasan cakupan test (edge case modul lain lanjutan)
 - [x] Deteksi & uji konflik penjadwalan crew/armada (tes API)
 - [ ] Uji perangkat mobile & skenario offline
 - [ ] Audit log

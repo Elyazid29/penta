@@ -277,6 +277,85 @@ class FinanceAndScheduleApiTest extends TestCase
         ]);
     }
 
+    public function test_jadwal_operasional_can_update_and_clear_alats(): void
+    {
+        $adminRole = Role::query()->where('name', 'admin')->firstOrFail();
+        Sanctum::actingAs(User::factory()->create(['role_id' => $adminRole->id]));
+        $order = $this->makeOrder();
+        $barangA = MasterBarang::query()->create([
+            'kode_barang' => 'BRG-JAD-A',
+            'nama_barang' => 'Mic',
+            'kategori' => 'Audio',
+            'satuan' => 'unit',
+            'jumlah_total' => 5,
+            'jumlah_rusak' => 0,
+            'di_sewa' => 0,
+            'harga_rental' => 50000,
+        ]);
+        $barangB = MasterBarang::query()->create([
+            'kode_barang' => 'BRG-JAD-B',
+            'nama_barang' => 'Mixer',
+            'kategori' => 'Audio',
+            'satuan' => 'unit',
+            'jumlah_total' => 3,
+            'jumlah_rusak' => 0,
+            'di_sewa' => 0,
+            'harga_rental' => 150000,
+        ]);
+
+        $jadwal = JadwalOperasional::query()->create([
+            'form_order_id' => $order->id,
+            'tanggal_mulai' => '2026-11-27 08:00:00',
+            'tanggal_selesai' => '2026-11-27 17:00:00',
+            'status' => 'Terjadwal',
+        ]);
+        $jadwal->alats()->sync([$barangA->id => ['qty' => 1]]);
+
+        $this->putJson('/api/v1/jadwal-operasional/'.$jadwal->id, [
+            'form_order_id' => $order->id,
+            'tanggal_mulai' => '2026-11-27 08:00:00',
+            'tanggal_selesai' => '2026-11-27 17:00:00',
+            'status' => 'Terjadwal',
+            'alats' => [
+                ['barang_id' => $barangB->id, 'qty' => 3],
+            ],
+        ])->assertOk()
+            ->assertJsonCount(1, 'data.alats')
+            ->assertJsonPath('data.alats.0.id', $barangB->id)
+            ->assertJsonPath('data.alats.0.pivot.qty', 3);
+
+        $this->assertDatabaseMissing('jadwal_operasional_alats', ['jadwal_operasional_id' => $jadwal->id, 'master_barang_id' => $barangA->id]);
+        $this->assertDatabaseHas('jadwal_operasional_alats', ['jadwal_operasional_id' => $jadwal->id, 'master_barang_id' => $barangB->id, 'qty' => 3]);
+
+        $this->putJson('/api/v1/jadwal-operasional/'.$jadwal->id, [
+            'form_order_id' => $order->id,
+            'tanggal_mulai' => '2026-11-27 08:00:00',
+            'tanggal_selesai' => '2026-11-27 17:00:00',
+            'status' => 'Terjadwal',
+            'alats' => [],
+        ])->assertOk()->assertJsonCount(0, 'data.alats');
+
+        $this->assertDatabaseCount('jadwal_operasional_alats', 0);
+    }
+
+    public function test_jadwal_operasional_rejects_invalid_alat(): void
+    {
+        $adminRole = Role::query()->where('name', 'admin')->firstOrFail();
+        Sanctum::actingAs(User::factory()->create(['role_id' => $adminRole->id]));
+        $order = $this->makeOrder();
+
+        $this->postJson('/api/v1/jadwal-operasional', [
+            'form_order_id' => $order->id,
+            'tanggal_mulai' => '2026-11-28 08:00:00',
+            'tanggal_selesai' => '2026-11-28 17:00:00',
+            'status' => 'Terjadwal',
+            'alats' => [
+                ['barang_id' => 999999, 'qty' => 1],
+            ],
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['alats.0.barang_id']);
+    }
+
     private function makeOrder(): FormOrder
     {
         $klien = MasterKlien::query()->create(['nama_klien' => 'PT Uji']);

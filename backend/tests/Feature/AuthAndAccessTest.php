@@ -86,6 +86,16 @@ class AuthAndAccessTest extends TestCase
         $this->getJson('/api/v1/absensi')->assertOk();
     }
 
+    public function test_teknisi_cannot_access_admin_or_owner_management_endpoints(): void
+    {
+        Sanctum::actingAs($this->userWithRole('teknisi'));
+
+        $this->getJson('/api/v1/users')->assertForbidden();
+        $this->getJson('/api/v1/master-perusahaan')->assertForbidden();
+        $this->getJson('/api/v1/surat-jalan')->assertForbidden();
+        $this->getJson('/api/v1/jadwal-operasional')->assertForbidden();
+    }
+
     private function userWithRole(string $roleName): User
     {
         $role = Role::query()->where('name', $roleName)->firstOrFail();
