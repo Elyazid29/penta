@@ -76,4 +76,37 @@ class LaporanApiTest extends TestCase
             ->assertJsonPath('data.piutang', 1250000)
             ->assertJsonPath('data.invoice_overdue', 1);
     }
+
+    public function test_laporan_invoices_csv_can_be_downloaded(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+        $klien = MasterKlien::query()->create(['nama_klien' => 'PT CSV']);
+        $order = FormOrder::query()->create([
+            'nomor_order' => 'ORD-CSV-001',
+            'klien_id' => $klien->id,
+            'nama_event' => 'Event',
+            'venue' => 'Jakarta',
+            'load_in' => now(),
+            'load_out' => now()->addDay(),
+            'status' => 'Draft',
+        ]);
+        Invoice::query()->create([
+            'nomor_invoice' => 'INV-CSV-001',
+            'form_order_id' => $order->id,
+            'tanggal_invoice' => '2026-11-10',
+            'subtotal' => 1000000,
+            'diskon' => 0,
+            'pajak' => 0,
+            'total' => 1000000,
+            'dibayar' => 250000,
+            'status' => 'DP',
+        ]);
+
+        $response = $this->get('/api/v1/laporan/invoices.csv');
+
+        $response->assertOk();
+        $response->assertHeader('content-type', 'text/csv; charset=UTF-8');
+        $this->assertStringContainsString('Nomor Invoice', $response->streamedContent());
+        $this->assertStringContainsString('INV-CSV-001', $response->streamedContent());
+    }
 }

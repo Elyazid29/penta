@@ -51,4 +51,37 @@ class LaporanController extends Controller
             fclose($handle);
         }, 'laporan-keuangan.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
+
+    public function invoicesCsv(): StreamedResponse
+    {
+        Invoice::query()
+            ->where('status', '!=', 'Paid')
+            ->whereNotNull('jatuh_tempo')
+            ->whereDate('jatuh_tempo', '<', now()->toDateString())
+            ->update(['status' => 'Overdue']);
+
+        return response()->streamDownload(function (): void {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['Nomor Invoice', 'Order ID', 'Tanggal', 'Jatuh Tempo', 'Subtotal', 'Diskon', 'Pajak', 'Total', 'Dibayar', 'Sisa', 'Status']);
+            Invoice::query()->with('order')->latest('tanggal_invoice')->chunk(500, function ($invoices) use ($handle): void {
+                foreach ($invoices as $invoice) {
+                    $sisa = max((float) $invoice->total - (float) $invoice->dibayar, 0);
+                    fputcsv($handle, [
+                        $invoice->nomor_invoice,
+                        $invoice->form_order_id,
+                        $invoice->tanggal_invoice?->toDateString(),
+                        $invoice->jatuh_tempo?->toDateString(),
+                        $invoice->subtotal,
+                        $invoice->diskon,
+                        $invoice->pajak,
+                        $invoice->total,
+                        $invoice->dibayar,
+                        $sisa,
+                        $invoice->status,
+                    ]);
+                }
+            });
+            fclose($handle);
+        }, 'laporan-invoice.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
 }
