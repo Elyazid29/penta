@@ -96,4 +96,28 @@ class MasterBarangApiTest extends TestCase
         $this->postJson('/api/v1/master-barang', [])->assertUnprocessable()
             ->assertJsonValidationErrors(['kode_barang', 'nama_barang', 'kategori', 'jumlah_total', 'jumlah_rusak', 'di_sewa', 'harga_rental']);
     }
+
+    public function test_deleting_master_barang_removes_stored_photo(): void
+    {
+        Storage::fake('public');
+        Sanctum::actingAs(User::factory()->create());
+        $path = 'barang/to-delete.jpg';
+        Storage::disk('public')->put($path, 'dummy');
+        $barang = MasterBarang::query()->create([
+            'kode_barang' => 'BRG-DEL-PHOTO',
+            'nama_barang' => 'Barang Hapus Foto',
+            'kategori' => 'Audio',
+            'satuan' => 'unit',
+            'jumlah_total' => 1,
+            'jumlah_rusak' => 0,
+            'di_sewa' => 0,
+            'harga_rental' => 1000,
+            'foto_path' => $path,
+        ]);
+
+        $this->deleteJson('/api/v1/master-barang/'.$barang->id)->assertNoContent();
+
+        $this->assertDatabaseMissing('master_barangs', ['id' => $barang->id]);
+        Storage::disk('public')->assertMissing($path);
+    }
 }

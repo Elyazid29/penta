@@ -62,6 +62,13 @@ class MasterPaketApiTest extends TestCase
             'items' => [],
         ])->assertUnprocessable()->assertJsonValidationErrors(['items']);
 
+        $this->postJson('/api/v1/master-paket', [
+            'kode_paket' => 'PKT-BAD-2',
+            'nama_paket' => 'Bad 2',
+            'harga_paket' => 1000,
+            'items' => [['nama_item' => 'X', 'qty' => 0, 'harga' => -1]],
+        ])->assertUnprocessable()->assertJsonValidationErrors(['items.0.qty', 'items.0.harga']);
+
         $this->deleteJson('/api/v1/master-paket/'.$paket->id)->assertNoContent();
         $this->assertDatabaseMissing('master_pakets', ['id' => $paket->id]);
     }

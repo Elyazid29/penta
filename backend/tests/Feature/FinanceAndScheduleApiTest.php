@@ -404,6 +404,20 @@ class FinanceAndScheduleApiTest extends TestCase
             ->assertJsonValidationErrors(['tanggal', 'jenis', 'kategori', 'jumlah']);
     }
 
+    public function test_transaksi_keuangan_validation_rejects_invalid_invoice_id(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+
+        $this->postJson('/api/v1/transaksi-keuangan', [
+            'invoice_id' => 999999,
+            'tanggal' => '2026-11-16',
+            'jenis' => 'Pemasukan',
+            'kategori' => 'DP',
+            'jumlah' => 1000,
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['invoice_id']);
+    }
+
     public function test_deleting_transaksi_keuangan_resyncs_invoice_payment(): void
     {
         Sanctum::actingAs(User::factory()->create());
