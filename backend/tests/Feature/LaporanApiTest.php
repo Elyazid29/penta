@@ -6,6 +6,7 @@ use App\Models\FormOrder;
 use App\Models\Invoice;
 use App\Models\JadwalOperasional;
 use App\Models\MasterKlien;
+use App\Models\Role;
 use App\Models\SuratJalan;
 use App\Models\TransaksiKeuangan;
 use App\Models\User;
@@ -17,9 +18,15 @@ class LaporanApiTest extends TestCase
 {
     use RefreshDatabase;
 
+    private function actingAsAdmin(): void
+    {
+        $role = Role::query()->where('name', 'admin')->firstOrFail();
+        Sanctum::actingAs(User::factory()->create(['role_id' => $role->id]));
+    }
+
     public function test_laporan_summary_includes_cashflow_and_receivables(): void
     {
-        Sanctum::actingAs(User::factory()->create());
+        $this->actingAsAdmin();
 
         TransaksiKeuangan::query()->create([
             'tanggal' => '2026-11-10',
@@ -86,7 +93,7 @@ class LaporanApiTest extends TestCase
 
     public function test_laporan_invoices_csv_can_be_downloaded(): void
     {
-        Sanctum::actingAs(User::factory()->create());
+        $this->actingAsAdmin();
         $klien = MasterKlien::query()->create(['nama_klien' => 'PT CSV']);
         $order = FormOrder::query()->create([
             'nomor_order' => 'ORD-CSV-001',
@@ -119,7 +126,7 @@ class LaporanApiTest extends TestCase
 
     public function test_laporan_summary_includes_per_event_profit_and_loss(): void
     {
-        Sanctum::actingAs(User::factory()->create());
+        $this->actingAsAdmin();
         $klien = MasterKlien::query()->create(['nama_klien' => 'PT Event']);
         $order = FormOrder::query()->create([
             'nomor_order' => 'ORD-EVT-001',
@@ -158,7 +165,7 @@ class LaporanApiTest extends TestCase
 
     public function test_laporan_operasional_csv_can_be_downloaded(): void
     {
-        Sanctum::actingAs(User::factory()->create());
+        $this->actingAsAdmin();
         $klien = MasterKlien::query()->create(['nama_klien' => 'PT Ops']);
         $order = FormOrder::query()->create([
             'nomor_order' => 'ORD-OPS-001',
@@ -194,5 +201,17 @@ class LaporanApiTest extends TestCase
         $content = $jadwal->streamedContent();
         $this->assertStringContainsString('Tanggal Mulai', $content);
         $this->assertStringContainsString('ORD-OPS-001', $content);
+    }
+
+    public function test_teknisi_cannot_access_laporan_endpoints(): void
+    {
+        $role = Role::query()->where('name', 'teknisi')->firstOrFail();
+        Sanctum::actingAs(User::factory()->create(['role_id' => $role->id]));
+
+        $this->getJson('/api/v1/laporan/summary')->assertForbidden();
+        $this->get('/api/v1/laporan/transactions.csv')->assertForbidden();
+        $this->get('/api/v1/laporan/invoices.csv')->assertForbidden();
+        $this->get('/api/v1/laporan/surat-jalan.csv')->assertForbidden();
+        $this->get('/api/v1/laporan/jadwal-operasional.csv')->assertForbidden();
     }
 }

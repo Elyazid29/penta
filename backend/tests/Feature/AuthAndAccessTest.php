@@ -58,7 +58,7 @@ class AuthAndAccessTest extends TestCase
 
     public function test_laporan_transactions_csv_can_be_downloaded(): void
     {
-        Sanctum::actingAs(User::factory()->create());
+        Sanctum::actingAs($this->userWithRole('admin'));
         TransaksiKeuangan::query()->create([
             'tanggal' => '2026-11-10',
             'jenis' => 'Pemasukan',

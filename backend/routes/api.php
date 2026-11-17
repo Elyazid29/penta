@@ -44,11 +44,6 @@ Route::apiResource('v1/form-order', FormOrderController::class)->middleware('aut
 Route::apiResource('v1/form-penawaran', FormPenawaranController::class)->middleware('auth:sanctum');
 Route::apiResource('v1/invoice', InvoiceController::class)->except(['show'])->middleware('auth:sanctum');
 Route::apiResource('v1/transaksi-keuangan', TransaksiKeuanganController::class)->except(['show'])->middleware('auth:sanctum');
-Route::get('v1/laporan/summary', [LaporanController::class, 'summary'])->middleware('auth:sanctum');
-Route::get('v1/laporan/transactions.csv', [LaporanController::class, 'transactionsCsv'])->middleware('auth:sanctum');
-Route::get('v1/laporan/invoices.csv', [LaporanController::class, 'invoicesCsv'])->middleware('auth:sanctum');
-Route::get('v1/laporan/surat-jalan.csv', [LaporanController::class, 'suratJalanCsv'])->middleware('auth:sanctum');
-Route::get('v1/laporan/jadwal-operasional.csv', [LaporanController::class, 'jadwalCsv'])->middleware('auth:sanctum');
 
 // Owner only
 Route::middleware(['auth:sanctum', 'check.role:owner'])->prefix('v1')->group(function (): void {
@@ -66,6 +61,11 @@ Route::middleware(['auth:sanctum', 'check.role:admin,owner'])->prefix('v1')->gro
     Route::get('surat-jalan/teknisi-options', [SuratJalanController::class, 'teknisiOptions']);
     Route::apiResource('surat-jalan', SuratJalanController::class)->except(['show']);
     Route::apiResource('jadwal-operasional', JadwalOperasionalController::class)->except(['show']);
+    Route::get('laporan/summary', [LaporanController::class, 'summary']);
+    Route::get('laporan/transactions.csv', [LaporanController::class, 'transactionsCsv']);
+    Route::get('laporan/invoices.csv', [LaporanController::class, 'invoicesCsv']);
+    Route::get('laporan/surat-jalan.csv', [LaporanController::class, 'suratJalanCsv']);
+    Route::get('laporan/jadwal-operasional.csv', [LaporanController::class, 'jadwalCsv']);
 });
 
 // Teknisi (Mobile)
