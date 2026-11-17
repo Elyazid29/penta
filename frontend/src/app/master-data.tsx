@@ -319,6 +319,8 @@ export default function App() {
   const [deliveryData, setDeliveryData] = useState<{ id: number; nomor_surat_jalan: string; items: Array<{ id: number; nama_item: string; qty: number }>; teknisi: Array<{ id: number; name: string }>; is_assigned: boolean } | null>(null);
   const [technicianDeliveryStage, setTechnicianDeliveryStage] = useState<"scan" | "checkout" | "checkin" | "additional">("scan");
   const [additionalItems, setAdditionalItems] = useState<Array<{ nama_barang: string; qty: number; alasan: string }>>([]);
+  const [isOnline, setIsOnline] = useState(true);
+  const [pendingDeliveryCount, setPendingDeliveryCount] = useState(0);
 
   useEffect(() => {
     const savedToken = window.localStorage.getItem("penta_access_token");
@@ -328,6 +330,98 @@ export default function App() {
     }, 0);
     return () => window.clearTimeout(timer);
   }, []);
+
+  const PENDING_DELIVERY_KEY = "penta_pending_delivery_actions";
+
+  function readPendingDeliveryActions(): Array<Record<string, any>> {
+    try {
+      const raw = window.localStorage.getItem(PENDING_DELIVERY_KEY);
+      return raw ? (JSON.parse(raw) as Array<Record<string, any>>) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function writePendingDeliveryActions(actions: Array<Record<string, any>>): void {
+    window.localStorage.setItem(PENDING_DELIVERY_KEY, JSON.stringify(actions));
+    setPendingDeliveryCount(actions.length);
+  }
+
+  async function fileToDataUrl(file: File): Promise<string> {
+    return await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = () => reject(new Error("Gagal membaca file foto."));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function dataUrlToFile(dataUrl: string, filename: string): File {
+    const [meta, content] = dataUrl.split(",");
+    const mimeMatch = /data:(.*?);base64/.exec(meta || "");
+    const mime = mimeMatch?.[1] || "image/jpeg";
+    const binary = atob(content || "");
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+    return new File([bytes], filename, { type: mime });
+  }
+
+  async function enqueueDeliveryAction(action: Record<string, any>): Promise<boolean> {
+    try {
+      const actions = readPendingDeliveryActions();
+      actions.push({ ...action, queued_at: new Date().toISOString() });
+      writePendingDeliveryActions(actions);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  useEffect(() => {
+    const update = () => {
+      setIsOnline(navigator.onLine);
+      setPendingDeliveryCount(readPendingDeliveryActions().length);
+    };
+    update();
+    window.addEventListener("online", update);
+    window.addEventListener("offline", update);
+    return () => {
+      window.removeEventListener("online", update);
+      window.removeEventListener("offline", update);
+    };
+  }, []);
+
+  async function syncPendingDeliveryActions(): Promise<void> {
+    const actions = readPendingDeliveryActions();
+    if (actions.length === 0) { setNotice("Tidak ada antrian offline."); return; }
+    if (!navigator.onLine) { setError("Masih offline. Coba lagi saat koneksi tersedia."); return; }
+    setBusy(true); setError("");
+    const remaining: Array<Record<string, any>> = [];
+    let synced = 0;
+    for (const action of actions) {
+      try {
+        const formData = new FormData();
+        Object.entries(action.fields || {}).forEach(([k, v]) => formData.append(k, String(v ?? "")));
+        if (action.foto_data_url) {
+          formData.append("foto", dataUrlToFile(action.foto_data_url, action.foto_name || "offline.jpg"));
+        }
+        const response = await fetch(`${API_BASE}${action.endpoint}`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error((payload as any)?.message || "Gagal sinkronisasi.");
+        synced += 1;
+      } catch (cause) {
+        remaining.push({ ...action, last_error: cause instanceof Error ? cause.message : "Gagal" });
+      }
+    }
+    writePendingDeliveryActions(remaining);
+    setBusy(false);
+    if (remaining.length === 0) setNotice(`Sinkronisasi selesai (${synced} aksi).`);
+    else setError(`Tersinkron ${synced}, tersisa ${remaining.length} aksi. Periksa koneksi/data lalu coba lagi.`);
+  }
 
   useEffect(() => {
     if (token && activeMenu === "DATABASE") {
@@ -1041,6 +1135,12 @@ export default function App() {
 
         {/* Main content */}
         <main className="px-4 py-6 space-y-6">
+          <div className={`rounded-lg p-3 text-sm ${isOnline ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-800"}`}>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span>{isOnline ? "Online" : "Offline - aksi checkout/checkin/barang susulan akan diantrikan"}{pendingDeliveryCount > 0 ? ` • ${pendingDeliveryCount} antrian` : ""}</span>
+              <button type="button" onClick={() => void syncPendingDeliveryActions()} disabled={busy || pendingDeliveryCount === 0} className="rounded border border-current px-3 py-1 text-xs font-semibold disabled:opacity-50">Sinkronkan antrian</button>
+            </div>
+          </div>
           {error && <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>}
           {notice && <div className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700">{notice}</div>}
 
@@ -1190,7 +1290,7 @@ export default function App() {
                   onClick={async () => {
                     setBusy(true);
                     setError("");
-                    try {
+                    const submit = async () => {
                       const formData = new FormData();
                       formData.append("surat_jalan_id", String(deliveryData.id));
                       formData.append("foto", technicianDeliveryForm.foto!);
@@ -1200,15 +1300,45 @@ export default function App() {
                         headers: { Authorization: `Bearer ${token}` },
                         body: formData,
                       });
-                      const payload = await response.json();
-                      if (!response.ok) throw new Error(payload.message || "Gagal checkout.");
+                      const payload = await response.json().catch(() => ({}));
+                      if (!response.ok) throw new Error((payload as any).message || "Gagal checkout.");
+                    };
+                    try {
+                      if (!navigator.onLine) throw new Error("__offline__");
+                      await submit();
                       setNotice("Checkout berhasil. Barang siap diangkut.");
                       setTimeout(() => {
                         setTechnicianDeliveryStage("checkin");
                         setTechnicianDeliveryForm({ kode_surat_jalan: "", foto: null, items: [] });
                       }, 2000);
                     } catch (cause) {
-                      setError(cause instanceof Error ? cause.message : "Gagal checkout.");
+                      const msg = cause instanceof Error ? cause.message : "";
+                      const networkFail = msg === "__offline__" || cause instanceof TypeError || !navigator.onLine;
+                      if (networkFail && technicianDeliveryForm.foto) {
+                        try {
+                          const fotoDataUrl = await fileToDataUrl(technicianDeliveryForm.foto);
+                          if (fotoDataUrl.length > 4_500_000) throw new Error("Foto terlalu besar untuk antrean offline. Kecilkan foto lalu coba lagi.");
+                          const queued = await enqueueDeliveryAction({
+                            endpoint: "/v1/delivery/checkout",
+                            fields: { surat_jalan_id: deliveryData.id, items: JSON.stringify(technicianDeliveryForm.items) },
+                            foto_data_url: fotoDataUrl,
+                            foto_name: technicianDeliveryForm.foto.name || "checkout.jpg",
+                          });
+                          if (queued) {
+                            setNotice("Koneksi bermasalah/offline. Checkout diantrikan dan akan disinkronkan saat online.");
+                            setTimeout(() => {
+                              setTechnicianDeliveryStage("checkin");
+                              setTechnicianDeliveryForm({ kode_surat_jalan: "", foto: null, items: [] });
+                            }, 1500);
+                          } else {
+                            setError("Gagal menyimpan antrian offline.");
+                          }
+                        } catch (q) {
+                          setError(q instanceof Error ? q.message : "Gagal checkout dan gagal menyimpan antrian.");
+                        }
+                      } else {
+                        setError(msg === "__offline__" ? "Offline. Tidak dapat mengirim checkout." : (cause instanceof Error ? cause.message : "Gagal checkout."));
+                      }
                     } finally {
                       setBusy(false);
                     }
@@ -1253,27 +1383,58 @@ export default function App() {
                   e.preventDefault();
                   setBusy(true);
                   setError("");
-                  try {
+                  const submit = async () => {
                     const formData = new FormData();
                     formData.append("surat_jalan_id", String(deliveryData.id));
                     formData.append("nama_barang", additionalItemForm.nama_barang);
                     formData.append("qty", String(additionalItemForm.qty));
                     formData.append("alasan", additionalItemForm.alasan);
-                    if (additionalItemForm.foto) {
-                      formData.append("foto", additionalItemForm.foto);
-                    }
+                    if (additionalItemForm.foto) formData.append("foto", additionalItemForm.foto);
                     const response = await fetch(`${API_BASE}/v1/delivery-additional-items`, {
                       method: "POST",
                       headers: { Authorization: `Bearer ${token}` },
                       body: formData,
                     });
-                    const payload = await response.json();
-                    if (!response.ok) throw new Error(payload.message || "Gagal tambah barang susulan.");
+                    const payload = await response.json().catch(() => ({}));
+                    if (!response.ok) throw new Error((payload as any).message || "Gagal tambah barang susulan.");
+                  };
+                  try {
+                    if (!navigator.onLine) throw new Error("__offline__");
+                    await submit();
                     setNotice("Barang susulan berhasil ditambahkan.");
                     setAdditionalItems([...additionalItems, { nama_barang: additionalItemForm.nama_barang, qty: additionalItemForm.qty, alasan: additionalItemForm.alasan }]);
                     setAdditionalItemForm({ nama_barang: "", qty: 1, foto: null, alasan: "" });
                   } catch (cause) {
-                    setError(cause instanceof Error ? cause.message : "Gagal tambah barang susulan.");
+                    const msg = cause instanceof Error ? cause.message : "";
+                    const networkFail = msg === "__offline__" || cause instanceof TypeError || !navigator.onLine;
+                    if (networkFail) {
+                      try {
+                        let fotoDataUrl = "";
+                        let fotoName = "";
+                        if (additionalItemForm.foto) {
+                          fotoDataUrl = await fileToDataUrl(additionalItemForm.foto);
+                          if (fotoDataUrl.length > 4_500_000) throw new Error("Foto terlalu besar untuk antrean offline. Kecilkan foto lalu coba lagi.");
+                          fotoName = additionalItemForm.foto.name || "additional.jpg";
+                        }
+                        const queued = await enqueueDeliveryAction({
+                          endpoint: "/v1/delivery-additional-items",
+                          fields: { surat_jalan_id: deliveryData.id, nama_barang: additionalItemForm.nama_barang, qty: additionalItemForm.qty, alasan: additionalItemForm.alasan },
+                          foto_data_url: fotoDataUrl || undefined,
+                          foto_name: fotoName || undefined,
+                        });
+                        if (queued) {
+                          setNotice("Koneksi bermasalah/offline. Barang susulan diantrikan dan akan disinkronkan saat online.");
+                          setAdditionalItems([...additionalItems, { nama_barang: additionalItemForm.nama_barang, qty: additionalItemForm.qty, alasan: additionalItemForm.alasan }]);
+                          setAdditionalItemForm({ nama_barang: "", qty: 1, foto: null, alasan: "" });
+                        } else {
+                          setError("Gagal menyimpan antrian offline.");
+                        }
+                      } catch (q) {
+                        setError(q instanceof Error ? q.message : "Gagal tambah barang susulan dan gagal menyimpan antrian.");
+                      }
+                    } else {
+                      setError(msg === "__offline__" ? "Offline. Tidak dapat mengirim barang susulan." : (cause instanceof Error ? cause.message : "Gagal tambah barang susulan."));
+                    }
                   } finally {
                     setBusy(false);
                   }
@@ -1451,7 +1612,7 @@ export default function App() {
                   onClick={async () => {
                     setBusy(true);
                     setError("");
-                    try {
+                    const submit = async () => {
                       const formData = new FormData();
                       formData.append("surat_jalan_id", String(deliveryData.id));
                       formData.append("foto", technicianDeliveryForm.foto!);
@@ -1461,8 +1622,12 @@ export default function App() {
                         headers: { Authorization: `Bearer ${token}` },
                         body: formData,
                       });
-                      const payload = await response.json();
-                      if (!response.ok) throw new Error(payload.message || "Gagal checkin.");
+                      const payload = await response.json().catch(() => ({}));
+                      if (!response.ok) throw new Error((payload as any).message || "Gagal checkin.");
+                    };
+                    try {
+                      if (!navigator.onLine) throw new Error("__offline__");
+                      await submit();
                       setNotice("Checkin berhasil. Barang dikembalikan ke gudang.");
                       setTimeout(() => {
                         setTechnicianDeliveryStage("scan");
@@ -1470,7 +1635,34 @@ export default function App() {
                         setDeliveryData(null);
                       }, 2000);
                     } catch (cause) {
-                      setError(cause instanceof Error ? cause.message : "Gagal checkin.");
+                      const msg = cause instanceof Error ? cause.message : "";
+                      const networkFail = msg === "__offline__" || cause instanceof TypeError || !navigator.onLine;
+                      if (networkFail && technicianDeliveryForm.foto) {
+                        try {
+                          const fotoDataUrl = await fileToDataUrl(technicianDeliveryForm.foto);
+                          if (fotoDataUrl.length > 4_500_000) throw new Error("Foto terlalu besar untuk antrean offline. Kecilkan foto lalu coba lagi.");
+                          const queued = await enqueueDeliveryAction({
+                            endpoint: "/v1/delivery/checkin",
+                            fields: { surat_jalan_id: deliveryData.id, items: JSON.stringify(technicianDeliveryForm.items) },
+                            foto_data_url: fotoDataUrl,
+                            foto_name: technicianDeliveryForm.foto.name || "checkin.jpg",
+                          });
+                          if (queued) {
+                            setNotice("Koneksi bermasalah/offline. Checkin diantrikan dan akan disinkronkan saat online.");
+                            setTimeout(() => {
+                              setTechnicianDeliveryStage("scan");
+                              setTechnicianDeliveryForm({ kode_surat_jalan: "", foto: null, items: [] });
+                              setDeliveryData(null);
+                            }, 1500);
+                          } else {
+                            setError("Gagal menyimpan antrian offline.");
+                          }
+                        } catch (q) {
+                          setError(q instanceof Error ? q.message : "Gagal checkin dan gagal menyimpan antrian.");
+                        }
+                      } else {
+                        setError(msg === "__offline__" ? "Offline. Tidak dapat mengirim checkin." : (cause instanceof Error ? cause.message : "Gagal checkin."));
+                      }
                     } finally {
                       setBusy(false);
                     }
