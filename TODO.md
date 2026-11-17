@@ -39,7 +39,7 @@
 - [ ] Ekspor Excel/PDF operasional & keuangan lanjutan (format berkas .xlsx/.pdf; butuh persetujuan dependensi)
 
 ## Quality & Deployment
-- [x] Feature test API (70 test, 414 assertion lulus per verifikasi terakhir): auth (login/me/logout), akses terproteksi & pembatasan role (teknisi vs admin/owner), validasi invoice/transaksi/jadwal/penawaran/form order/master data/absensi/surat jalan (termasuk validasi, unik nomor/kode, & hapus/update), finance/schedule, otorisasi & user management, delivery (scan/assignment, checkout/checkin, barang susulan), surat jalan (auto-item, item/teknisi manual, invoice otomatis saat selesai), form order create/update, kalkulasi & update penawaran, sinkronisasi & resync pembayaran saat hapus/update transaksi (termasuk pindah invoice, kaitan form_order), overdue (termasuk refresh), laporan (summary laba-rugi, rincian kategori & per event, CSV transaksi/invoice/surat jalan/jadwal; akses dibatasi admin/owner, teknisi ditolak), filter & penugasan/update/hapus/validasi alat jadwal, CRUD absensi, pembersihan berkas terkait (foto barang). Rute duplikat surat-jalan/jadwal dibersihkan (admin/owner).
+- [x] Feature test API (72 test, 420 assertion lulus per verifikasi terakhir): auth (login/me/logout), akses terproteksi & pembatasan role (teknisi vs admin/owner), validasi invoice/transaksi/jadwal/penawaran/form order/master data/absensi/surat jalan (termasuk validasi, unik nomor/kode, & hapus/update), finance/schedule, otorisasi & user management, delivery (scan/assignment, checkout/checkin, barang susulan), surat jalan (auto-item, item/teknisi manual, invoice otomatis saat selesai), form order create/update, kalkulasi & update penawaran, sinkronisasi & resync pembayaran saat hapus/update transaksi (termasuk pindah invoice, kaitan form_order), overdue (termasuk refresh), laporan (summary laba-rugi, rincian kategori & per event, CSV transaksi/invoice/surat jalan/jadwal; akses dibatasi admin/owner, teknisi ditolak), filter & penugasan/update/hapus/validasi alat jadwal, CRUD absensi, pembersihan berkas terkait (foto barang), audit log (pencatatan & akses). Rute duplikat surat-jalan/jadwal dibersihkan (admin/owner).
 - [x] Template env produksi (`backend/.env.production.example`, `frontend/.env.production.example`), CORS env-driven
 - [x] Script backup database (`scripts/dump-db.ps1`, `scripts/dump-db.sh`)
 - [x] Panduan deploy & post-deploy checklist (`docs/DEPLOYMENT.md`)
@@ -47,7 +47,7 @@
 - [ ] Perluasan cakupan test (edge case modul lain lanjutan)
 - [x] Deteksi & uji konflik penjadwalan crew/armada (tes API)
 - [ ] Uji perangkat mobile & skenario offline
-- [ ] Audit log
+- [x] Audit log dasar: pencatatan create/update/delete model utama (`audit_logs`), endpoint & tampilan riwayat untuk admin/owner
 - [ ] Deploy produksi (menunggu hosting/infrastruktur) — ikuti `docs/DEPLOYMENT.md`
 
 ## Catatan / keputusan terbuka

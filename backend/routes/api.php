@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\V1\AbsensiController;
 use App\Http\Controllers\Api\V1\AdditionalItemController;
+use App\Http\Controllers\Api\V1\AuditLogController;
 use App\Http\Controllers\Api\V1\DashboardController;
 use App\Http\Controllers\Api\V1\DeliveryCheckController;
 use App\Http\Controllers\Api\V1\FormOrderController;
@@ -66,6 +67,7 @@ Route::middleware(['auth:sanctum', 'check.role:admin,owner'])->prefix('v1')->gro
     Route::get('laporan/invoices.csv', [LaporanController::class, 'invoicesCsv']);
     Route::get('laporan/surat-jalan.csv', [LaporanController::class, 'suratJalanCsv']);
     Route::get('laporan/jadwal-operasional.csv', [LaporanController::class, 'jadwalCsv']);
+    Route::get('audit-logs', [AuditLogController::class, 'index']);
 });
 
 // Teknisi (Mobile)

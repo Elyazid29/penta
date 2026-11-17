@@ -17,6 +17,7 @@ import {
   CalendarDays,
   CarFront,
   ChevronRight,
+  History,
   Package,
   RefreshCw,
   Users,
@@ -40,6 +41,7 @@ type MainMenu =
   | "INVOICE" 
   | "KEUANGAN" 
   | "LAPORAN"
+  | "AUDIT_LOG"
   | "ABSENSI"
   | "USER_MANAGEMENT";
 
@@ -260,6 +262,7 @@ export default function App() {
   const [financeSummary, setFinanceSummary] = useState({ pemasukan: 0, pengeluaran: 0, saldo: 0 });
   const [financeForm, setFinanceForm] = useState({ invoice_id: "", form_order_id: "", tanggal: new Date().toISOString().slice(0, 10), jenis: "Pemasukan", kategori: "Pembayaran Klien", jumlah: 0, metode: "Transfer", referensi: "", keterangan: "" });
   const [reportSummary, setReportSummary] = useState<Record<string, any>>({});
+  const [auditLogs, setAuditLogs] = useState<MasterItem[]>([]);
   const [users, setUsers] = useState<MasterItem[]>([]);
   const [roles, setRoles] = useState<Array<{ id: number; name: string; display_name: string }>>([]);
   const [userForm, setUserForm] = useState({ name: "", email: "", password: "", role_id: "" });
@@ -269,14 +272,14 @@ export default function App() {
         { name: "WORKSPACE", items: ["DASHBOARD"] },
         { name: "DATA", items: ["DATABASE", "USER_MANAGEMENT"] },
         { name: "OPERASIONAL", items: ["FORM ORDER", "FORM PENAWARAN", "SURAT JALAN", "PENJADWALAN", "ABSENSI"] },
-        { name: "KEUANGAN", items: ["INVOICE", "KEUANGAN", "LAPORAN"] },
+        { name: "KEUANGAN", items: ["INVOICE", "KEUANGAN", "LAPORAN", "AUDIT_LOG"] },
       ]
     : userRole === "admin"
     ? [
         { name: "WORKSPACE", items: ["DASHBOARD"] },
         { name: "DATA", items: ["DATABASE"] },
         { name: "OPERASIONAL", items: ["FORM ORDER", "FORM PENAWARAN", "SURAT JALAN", "PENJADWALAN", "ABSENSI"] },
-        { name: "KEUANGAN", items: ["INVOICE", "KEUANGAN", "LAPORAN"] },
+        { name: "KEUANGAN", items: ["INVOICE", "KEUANGAN", "LAPORAN", "AUDIT_LOG"] },
       ]
     : [
         { name: "WORKSPACE", items: ["DASHBOARD"] },
@@ -292,6 +295,7 @@ export default function App() {
     INVOICE: "Invoice",
     KEUANGAN: "Keuangan",
     LAPORAN: "Laporan",
+    AUDIT_LOG: "Audit Log",
     ABSENSI: "Absensi",
     USER_MANAGEMENT: "User Management",
   };
@@ -306,6 +310,7 @@ export default function App() {
     INVOICE: Receipt,
     KEUANGAN: Wallet,
     LAPORAN: BarChart3,
+    AUDIT_LOG: History,
     ABSENSI: Users,
     USER_MANAGEMENT: Building2,
   };
@@ -448,6 +453,9 @@ export default function App() {
     if (token && activeMenu === "LAPORAN") {
       void loadReportData();
     }
+    if (token && activeMenu === "AUDIT_LOG") {
+      void loadAuditLogs();
+    }
     if (token && activeMenu === "DASHBOARD") {
       void loadDashboardData();
     }
@@ -583,6 +591,10 @@ export default function App() {
 
   async function loadReportData(): Promise<void> {
     setLoading(true); setError(""); try { const response = await request("laporan/summary"); const payload = await response.json(); if (!response.ok) throw new Error(payload?.message || "Gagal memuat laporan."); setReportSummary(payload.data || {}); } catch (cause) { setError(cause instanceof Error ? cause.message : "Gagal memuat laporan."); } finally { setLoading(false); }
+  }
+
+  async function loadAuditLogs(): Promise<void> {
+    setLoading(true); setError(""); try { const response = await request("audit-logs?per_page=100"); const payload = await response.json(); if (!response.ok) throw new Error(payload?.message || "Gagal memuat audit log."); setAuditLogs(resourceData<MasterItem>(payload)); } catch (cause) { setError(cause instanceof Error ? cause.message : "Gagal memuat audit log."); } finally { setLoading(false); }
   }
 
   async function downloadTransactionsCsv(): Promise<void> {
@@ -2134,6 +2146,33 @@ export default function App() {
                         <td className={`p-3 font-semibold ${Number(row.laba_rugi || 0) >= 0 ? "text-emerald-700" : "text-red-700"}`}>Rp {formatIDR(row.laba_rugi)}</td>
                       </tr>
                     )) : <tr><td colSpan={6} className="p-6 text-center text-slate-500">Belum ada transaksi yang dikaitkan ke event/order.</td></tr>}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
+          {activeMenu === "AUDIT_LOG" && (
+            <section className="space-y-5">
+              <div><h2 className="text-xl font-bold text-slate-900">Audit Log</h2><p className="mt-1 text-sm text-slate-500">Riwayat perubahan data penting (siapa, aksi, objek, waktu).</p></div>
+              {error && <div className="rounded bg-red-50 p-3 text-sm text-red-800">{error}</div>}
+              <div className="overflow-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-[#002480] text-white"><tr><th className="p-3">Waktu</th><th className="p-3">User</th><th className="p-3">Aksi</th><th className="p-3">Objek</th><th className="p-3">ID</th></tr></thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {auditLogs.length > 0 ? auditLogs.map((log) => {
+                      const u = log.user as Record<string, unknown> | undefined;
+                      const type = String(log.auditable_type || "");
+                      const shortType = type.includes("\\") ? type.split("\\").pop() : type;
+                      return (
+                        <tr key={String(log.id)}>
+                          <td className="p-3 whitespace-nowrap">{String(log.created_at || "-")}</td>
+                          <td className="p-3">{String(u?.name || u?.email || "-")}</td>
+                          <td className="p-3">{String(log.action || "-")}</td>
+                          <td className="p-3">{String(shortType || "-")}</td>
+                          <td className="p-3">{String(log.auditable_id ?? "-")}</td>
+                        </tr>
+                      );
+                    }) : <tr><td colSpan={5} className="p-6 text-center text-slate-500">Belum ada data audit log.</td></tr>}
                   </tbody>
                 </table>
               </div>
