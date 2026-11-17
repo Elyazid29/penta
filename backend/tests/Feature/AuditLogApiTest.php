@@ -19,17 +19,36 @@ class AuditLogApiTest extends TestCase
         $admin = $this->actingAsRole('admin');
 
         $klien = MasterKlien::query()->create(['nama_klien' => 'PT Audit']);
-
         $this->assertDatabaseHas('audit_logs', [
             'user_id' => $admin->id,
             'action' => 'created',
             'auditable_type' => MasterKlien::class,
             'auditable_id' => $klien->id,
         ]);
+        $created = AuditLog::query()->where('auditable_type', MasterKlien::class)->where('auditable_id', $klien->id)->where('action', 'created')->first();
+        $this->assertNotNull($created);
+        $this->assertSame('PT Audit', $created->new_values['nama_klien'] ?? null);
 
-        $log = AuditLog::query()->where('auditable_type', MasterKlien::class)->where('auditable_id', $klien->id)->first();
-        $this->assertNotNull($log);
-        $this->assertSame('PT Audit', $log->new_values['nama_klien'] ?? null);
+        $klien->update(['nama_klien' => 'PT Audit Baru']);
+        $this->assertDatabaseHas('audit_logs', [
+            'user_id' => $admin->id,
+            'action' => 'updated',
+            'auditable_type' => MasterKlien::class,
+            'auditable_id' => $klien->id,
+        ]);
+        $updated = AuditLog::query()->where('auditable_type', MasterKlien::class)->where('auditable_id', $klien->id)->where('action', 'updated')->latest('id')->first();
+        $this->assertNotNull($updated);
+        $this->assertSame('PT Audit', $updated->old_values['nama_klien'] ?? null);
+        $this->assertSame('PT Audit Baru', $updated->new_values['nama_klien'] ?? null);
+
+        $klienId = $klien->id;
+        $klien->delete();
+        $this->assertDatabaseHas('audit_logs', [
+            'user_id' => $admin->id,
+            'action' => 'deleted',
+            'auditable_type' => MasterKlien::class,
+            'auditable_id' => $klienId,
+        ]);
     }
 
     public function test_audit_log_endpoint_is_restricted_to_admin_and_owner(): void
@@ -38,6 +57,9 @@ class AuditLogApiTest extends TestCase
         $this->getJson('/api/v1/audit-logs')->assertForbidden();
 
         $this->actingAsRole('admin');
+        $this->getJson('/api/v1/audit-logs')->assertOk()->assertJsonStructure(['data']);
+
+        $this->actingAsRole('owner');
         $this->getJson('/api/v1/audit-logs')->assertOk()->assertJsonStructure(['data']);
     }
 

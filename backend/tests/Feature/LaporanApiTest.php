@@ -214,4 +214,13 @@ class LaporanApiTest extends TestCase
         $this->get('/api/v1/laporan/surat-jalan.csv')->assertForbidden();
         $this->get('/api/v1/laporan/jadwal-operasional.csv')->assertForbidden();
     }
+
+    public function test_owner_can_access_laporan_endpoints(): void
+    {
+        $role = Role::query()->where('name', 'owner')->firstOrFail();
+        Sanctum::actingAs(User::factory()->create(['role_id' => $role->id]));
+
+        $this->getJson('/api/v1/laporan/summary')->assertOk()->assertJsonStructure(['data']);
+        $this->get('/api/v1/laporan/transactions.csv')->assertOk();
+    }
 }
