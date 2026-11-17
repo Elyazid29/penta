@@ -4,7 +4,9 @@ namespace Tests\Feature;
 
 use App\Models\FormOrder;
 use App\Models\Invoice;
+use App\Models\JadwalOperasional;
 use App\Models\MasterKlien;
+use App\Models\SuratJalan;
 use App\Models\TransaksiKeuangan;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -152,5 +154,45 @@ class LaporanApiTest extends TestCase
             ->assertJsonPath('data.per_event.0.pemasukan', 1000000)
             ->assertJsonPath('data.per_event.0.pengeluaran', 300000)
             ->assertJsonPath('data.per_event.0.laba_rugi', 700000);
+    }
+
+    public function test_laporan_operasional_csv_can_be_downloaded(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+        $klien = MasterKlien::query()->create(['nama_klien' => 'PT Ops']);
+        $order = FormOrder::query()->create([
+            'nomor_order' => 'ORD-OPS-001',
+            'klien_id' => $klien->id,
+            'nama_event' => 'Event Ops',
+            'venue' => 'Jakarta',
+            'load_in' => now(),
+            'load_out' => now()->addDay(),
+            'status' => 'Draft',
+        ]);
+        SuratJalan::query()->create([
+            'nomor_surat_jalan' => 'SJ-OPS-001',
+            'form_order_id' => $order->id,
+            'tanggal_berangkat' => now(),
+            'status' => 'Draft',
+        ]);
+        JadwalOperasional::query()->create([
+            'form_order_id' => $order->id,
+            'tanggal_mulai' => '2026-11-20 08:00:00',
+            'tanggal_selesai' => '2026-11-20 17:00:00',
+            'status' => 'Terjadwal',
+            'jobdesk' => 'Setup',
+        ]);
+
+        $sj = $this->get('/api/v1/laporan/surat-jalan.csv');
+        $sj->assertOk()->assertHeader('content-type', 'text/csv; charset=UTF-8');
+        $sjContent = $sj->streamedContent();
+        $this->assertStringContainsString('Nomor Surat Jalan', $sjContent);
+        $this->assertStringContainsString('SJ-OPS-001', $sjContent);
+
+        $jadwal = $this->get('/api/v1/laporan/jadwal-operasional.csv');
+        $jadwal->assertOk()->assertHeader('content-type', 'text/csv; charset=UTF-8');
+        $content = $jadwal->streamedContent();
+        $this->assertStringContainsString('Tanggal Mulai', $content);
+        $this->assertStringContainsString('ORD-OPS-001', $content);
     }
 }

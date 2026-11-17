@@ -499,6 +499,14 @@ export default function App() {
     try { const response = await request("laporan/invoices.csv"); if (!response.ok) throw new Error("Gagal mengunduh laporan invoice."); const blob = await response.blob(); const url = URL.createObjectURL(blob); const anchor = document.createElement("a"); anchor.href = url; anchor.download = "laporan-invoice.csv"; anchor.click(); URL.revokeObjectURL(url); } catch (cause) { setError(cause instanceof Error ? cause.message : "Gagal mengunduh laporan invoice."); }
   }
 
+  async function downloadSuratJalanCsv(): Promise<void> {
+    try { const response = await request("laporan/surat-jalan.csv"); if (!response.ok) throw new Error("Gagal mengunduh laporan surat jalan."); const blob = await response.blob(); const url = URL.createObjectURL(blob); const anchor = document.createElement("a"); anchor.href = url; anchor.download = "laporan-surat-jalan.csv"; anchor.click(); URL.revokeObjectURL(url); } catch (cause) { setError(cause instanceof Error ? cause.message : "Gagal mengunduh laporan surat jalan."); }
+  }
+
+  async function downloadJadwalCsv(): Promise<void> {
+    try { const response = await request("laporan/jadwal-operasional.csv"); if (!response.ok) throw new Error("Gagal mengunduh laporan jadwal."); const blob = await response.blob(); const url = URL.createObjectURL(blob); const anchor = document.createElement("a"); anchor.href = url; anchor.download = "laporan-jadwal-operasional.csv"; anchor.click(); URL.revokeObjectURL(url); } catch (cause) { setError(cause instanceof Error ? cause.message : "Gagal mengunduh laporan jadwal."); }
+  }
+
   async function loadFinanceData(): Promise<void> {
     setLoading(true); setError("");
     try { const [transactionResponse, invoiceResponse, orderResponse] = await Promise.all([request("transaksi-keuangan?per_page=100"), request("invoice?per_page=100"), request("form-order?per_page=100")]); if (!transactionResponse.ok || !invoiceResponse.ok || !orderResponse.ok) throw new Error("Gagal memuat data keuangan."); const [transactionPayload, invoicePayload, orderPayload] = await Promise.all([transactionResponse.json(), invoiceResponse.json(), orderResponse.json()]); setTransactions(resourceData<MasterItem>(transactionPayload)); setFinanceSummary((transactionPayload.summary || { pemasukan: 0, pengeluaran: 0, saldo: 0 }) as { pemasukan: number; pengeluaran: number; saldo: number }); setInvoices(resourceData<MasterItem>(invoicePayload)); setInvoiceOrders(resourceData<MasterItem>(orderPayload)); } catch (cause) { setError(cause instanceof Error ? cause.message : "Gagal memuat data keuangan."); } finally { setLoading(false); }
@@ -1916,6 +1924,8 @@ export default function App() {
               <div className="flex flex-wrap gap-3">
                 <button onClick={() => void downloadTransactionsCsv()} className="rounded bg-blue-600 px-5 py-2 font-semibold text-white">Download Laporan Transaksi (CSV)</button>
                 <button onClick={() => void downloadInvoicesCsv()} className="rounded border border-blue-600 px-5 py-2 font-semibold text-blue-700 hover:bg-blue-50">Download Laporan Invoice (CSV)</button>
+                <button onClick={() => void downloadSuratJalanCsv()} className="rounded border border-slate-400 px-5 py-2 font-semibold text-slate-700 hover:bg-slate-50">Download Surat Jalan (CSV)</button>
+                <button onClick={() => void downloadJadwalCsv()} className="rounded border border-slate-400 px-5 py-2 font-semibold text-slate-700 hover:bg-slate-50">Download Jadwal Operasional (CSV)</button>
               </div>
               <div className="overflow-auto rounded-xl border border-slate-200 bg-white shadow-sm">
                 <div className="border-b border-slate-200 px-4 py-3"><h3 className="font-semibold text-slate-900">Laba/Rugi per Event (berdasarkan transaksi terkait order)</h3></div>

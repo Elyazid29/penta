@@ -47,6 +47,8 @@ Route::apiResource('v1/transaksi-keuangan', TransaksiKeuanganController::class)-
 Route::get('v1/laporan/summary', [LaporanController::class, 'summary'])->middleware('auth:sanctum');
 Route::get('v1/laporan/transactions.csv', [LaporanController::class, 'transactionsCsv'])->middleware('auth:sanctum');
 Route::get('v1/laporan/invoices.csv', [LaporanController::class, 'invoicesCsv'])->middleware('auth:sanctum');
+Route::get('v1/laporan/surat-jalan.csv', [LaporanController::class, 'suratJalanCsv'])->middleware('auth:sanctum');
+Route::get('v1/laporan/jadwal-operasional.csv', [LaporanController::class, 'jadwalCsv'])->middleware('auth:sanctum');
 
 // Owner only
 Route::middleware(['auth:sanctum', 'check.role:owner'])->prefix('v1')->group(function (): void {

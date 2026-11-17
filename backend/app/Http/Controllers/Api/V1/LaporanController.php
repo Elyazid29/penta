@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\FormOrder;
 use App\Models\Invoice;
+use App\Models\JadwalOperasional;
 use App\Models\MasterBarang;
+use App\Models\SuratJalan;
 use App\Models\TransaksiKeuangan;
 use Illuminate\Http\JsonResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -97,6 +99,7 @@ class LaporanController extends Controller
     {
         return response()->streamDownload(function (): void {
             $handle = fopen('php://output', 'w');
+            fwrite($handle, "\xEF\xBB\xBF");
             fputcsv($handle, ['Tanggal', 'Jenis', 'Kategori', 'Jumlah', 'Metode', 'Referensi', 'Order ID', 'Keterangan']);
             TransaksiKeuangan::query()->latest('tanggal')->chunk(500, function ($transactions) use ($handle): void {
                 foreach ($transactions as $transaction) {
@@ -117,6 +120,7 @@ class LaporanController extends Controller
 
         return response()->streamDownload(function (): void {
             $handle = fopen('php://output', 'w');
+            fwrite($handle, "\xEF\xBB\xBF");
             fputcsv($handle, ['Nomor Invoice', 'Order ID', 'Tanggal', 'Jatuh Tempo', 'Subtotal', 'Diskon', 'Pajak', 'Total', 'Dibayar', 'Sisa', 'Status']);
             Invoice::query()->with('order')->latest('tanggal_invoice')->chunk(500, function ($invoices) use ($handle): void {
                 foreach ($invoices as $invoice) {
@@ -138,5 +142,57 @@ class LaporanController extends Controller
             });
             fclose($handle);
         }, 'laporan-invoice.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
+
+    public function suratJalanCsv(): StreamedResponse
+    {
+        return response()->streamDownload(function (): void {
+            $handle = fopen('php://output', 'w');
+            fwrite($handle, "\xEF\xBB\xBF");
+            fputcsv($handle, ['Nomor Surat Jalan', 'Nomor Order', 'Event', 'Tanggal Berangkat', 'Status', 'Teknisi', 'Jumlah Item', 'Catatan']);
+            SuratJalan::query()->with(['order', 'items', 'teknisi'])->latest()->chunk(500, function ($rows) use ($handle): void {
+                foreach ($rows as $sj) {
+                    $teknisi = $sj->teknisi->pluck('nama_lengkap')->filter()->implode('; ');
+                    fputcsv($handle, [
+                        $sj->nomor_surat_jalan,
+                        $sj->order?->nomor_order,
+                        $sj->order?->nama_event,
+                        optional($sj->tanggal_berangkat)->toDateTimeString() ?? (string) $sj->tanggal_berangkat,
+                        $sj->status,
+                        $teknisi,
+                        $sj->items->count(),
+                        $sj->catatan,
+                    ]);
+                }
+            });
+            fclose($handle);
+        }, 'laporan-surat-jalan.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
+
+    public function jadwalCsv(): StreamedResponse
+    {
+        return response()->streamDownload(function (): void {
+            $handle = fopen('php://output', 'w');
+            fwrite($handle, "\xEF\xBB\xBF");
+            fputcsv($handle, ['Tanggal Mulai', 'Tanggal Selesai', 'Status', 'Order', 'Event', 'Crew', 'Armada', 'Alat', 'Jobdesk', 'Catatan']);
+            JadwalOperasional::query()->with(['order', 'karyawan', 'armada', 'alats'])->latest('tanggal_mulai')->chunk(500, function ($rows) use ($handle): void {
+                foreach ($rows as $jadwal) {
+                    $alats = $jadwal->alats->map(fn ($a) => $a->nama_barang.' ('.($a->pivot->qty ?? 1).')')->implode('; ');
+                    fputcsv($handle, [
+                        optional($jadwal->tanggal_mulai)->toDateTimeString() ?? (string) $jadwal->tanggal_mulai,
+                        optional($jadwal->tanggal_selesai)->toDateTimeString() ?? (string) $jadwal->tanggal_selesai,
+                        $jadwal->status,
+                        $jadwal->order?->nomor_order,
+                        $jadwal->order?->nama_event,
+                        $jadwal->karyawan?->nama_lengkap,
+                        $jadwal->armada?->plat_nomor,
+                        $alats,
+                        $jadwal->jobdesk,
+                        $jadwal->catatan,
+                    ]);
+                }
+            });
+            fclose($handle);
+        }, 'laporan-jadwal-operasional.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 }
