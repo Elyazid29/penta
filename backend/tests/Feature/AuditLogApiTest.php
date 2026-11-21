@@ -179,6 +179,28 @@ class AuditLogApiTest extends TestCase
         ]);
     }
 
+    public function test_form_order_changes_are_audited(): void
+    {
+        $admin = $this->actingAsRole('admin');
+        $klien = MasterKlien::query()->create(['nama_klien' => 'PT Order Audit']);
+        $order = FormOrder::query()->create([
+            'nomor_order' => 'ORD-AUD-001',
+            'klien_id' => $klien->id,
+            'nama_event' => 'Event Audit',
+            'venue' => 'Jakarta',
+            'load_in' => now(),
+            'load_out' => now()->addDay(),
+            'status' => 'Draft',
+        ]);
+
+        $this->assertDatabaseHas('audit_logs', [
+            'user_id' => $admin->id,
+            'action' => 'created',
+            'auditable_type' => FormOrder::class,
+            'auditable_id' => $order->id,
+        ]);
+    }
+
     public function test_audit_log_endpoint_returns_paginated_structure(): void
     {
         $this->actingAsRole('admin');
