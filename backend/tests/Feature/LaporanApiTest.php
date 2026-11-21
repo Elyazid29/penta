@@ -255,4 +255,15 @@ class LaporanApiTest extends TestCase
         $this->assertStringContainsString('Order ID', $content);
         $this->assertStringContainsString((string) $order->id, $content);
     }
+
+    public function test_laporan_transactions_csv_empty_still_returns_header(): void
+    {
+        $this->actingAsAdmin();
+
+        $response = $this->get('/api/v1/laporan/transactions.csv');
+        $response->assertOk()->assertHeader('content-type', 'text/csv; charset=UTF-8');
+        $content = $response->streamedContent();
+        $this->assertStringStartsWith("\xEF\xBB\xBF", $content);
+        $this->assertStringContainsString('Tanggal', $content);
+    }
 }
