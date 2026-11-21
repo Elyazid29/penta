@@ -394,6 +394,16 @@ class AuditLogApiTest extends TestCase
         $this->assertLessThan(array_search($first->id, $ids, true), array_search($second->id, $ids, true));
     }
 
+    public function test_audit_log_filter_unknown_value_returns_empty_data(): void
+    {
+        $this->actingAsRole('admin');
+        MasterKlien::query()->create(['nama_klien' => 'PT Ada']);
+
+        $this->getJson('/api/v1/audit-logs?action=tidak-ada')
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
+    }
+
     public function test_audit_log_skips_update_when_no_changes(): void
     {
         $this->actingAsRole('admin');
