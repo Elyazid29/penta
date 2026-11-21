@@ -63,6 +63,18 @@ class AuditLogApiTest extends TestCase
         $this->getJson('/api/v1/audit-logs')->assertOk()->assertJsonStructure(['data']);
     }
 
+    public function test_audit_log_can_be_filtered(): void
+    {
+        $this->actingAsRole('admin');
+        $klien = MasterKlien::query()->create(['nama_klien' => 'PT Filter']);
+        $klien->update(['nama_klien' => 'PT Filter Updated']);
+
+        $this->getJson('/api/v1/audit-logs?action=updated&auditable_type='.urlencode(MasterKlien::class))
+            ->assertOk()
+            ->assertJsonPath('data.0.action', 'updated')
+            ->assertJsonPath('data.0.auditable_type', MasterKlien::class);
+    }
+
     private function actingAsRole(string $roleName): User
     {
         $role = Role::query()->where('name', $roleName)->firstOrFail();

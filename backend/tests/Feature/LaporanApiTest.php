@@ -223,4 +223,33 @@ class LaporanApiTest extends TestCase
         $this->getJson('/api/v1/laporan/summary')->assertOk()->assertJsonStructure(['data']);
         $this->get('/api/v1/laporan/transactions.csv')->assertOk();
     }
+
+    public function test_laporan_transactions_csv_contains_order_id_and_bom(): void
+    {
+        $this->actingAsAdmin();
+        $klien = MasterKlien::query()->create(['nama_klien' => 'PT CSV2']);
+        $order = FormOrder::query()->create([
+            'nomor_order' => 'ORD-CSV-TRX',
+            'klien_id' => $klien->id,
+            'nama_event' => 'Event',
+            'venue' => 'Jakarta',
+            'load_in' => now(),
+            'load_out' => now()->addDay(),
+            'status' => 'Draft',
+        ]);
+        TransaksiKeuangan::query()->create([
+            'form_order_id' => $order->id,
+            'tanggal' => '2026-11-10',
+            'jenis' => 'Pemasukan',
+            'kategori' => 'DP',
+            'jumlah' => 500000,
+        ]);
+
+        $response = $this->get('/api/v1/laporan/transactions.csv');
+        $response->assertOk()->assertHeader('content-type', 'text/csv; charset=UTF-8');
+        $content = $response->streamedContent();
+        $this->assertStringStartsWith("\xEF\xBB\xBF", $content);
+        $this->assertStringContainsString('Order ID', $content);
+        $this->assertStringContainsString((string) $order->id, $content);
+    }
 }
