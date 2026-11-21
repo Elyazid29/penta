@@ -22,7 +22,7 @@
 - [x] Field checklist teknisi: scan surat jalan, checkout/checkin, checklist kondisi, foto (kompresi + thumbnail), barang susulan
 - [x] Riwayat foto per surat jalan (endpoint + tampilan admin, thumbnail/foto asli)
 - [x] Aturan akses: tanpa penugasan teknisi → teknisi mana pun boleh; bila ditugaskan → terbatas ke yang ditugaskan/admin/owner
-- [x] Mode offline checklist & sinkronisasi (incremental): antrean lokal & sinkronisasi manual checkout/checkin/barang susulan pada UI teknisi saat koneksi pulih (belum PWA/service worker/background sync penuh)
+- [x] Mode offline checklist & sinkronisasi (incremental): antrean lokal & sinkronisasi manual checkout/checkin/barang susulan pada UI teknisi saat koneksi pulih; manifest + service worker cache shell dasar (belum background sync penuh)
 - [x] Deteksi konflik jadwal crew/armada (tolak bentrok rentang waktu, abaikan status Dibatalkan)
 - [x] Filter jadwal operasional (status, karyawan, armada, order, rentang waktu)
 - [x] Dukungan penugasan alat (barang) pada jadwal operasional (API + relasi)
