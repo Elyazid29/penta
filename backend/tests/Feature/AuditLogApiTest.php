@@ -49,6 +49,9 @@ class AuditLogApiTest extends TestCase
             'auditable_type' => MasterKlien::class,
             'auditable_id' => $klienId,
         ]);
+        $deleted = AuditLog::query()->where('auditable_type', MasterKlien::class)->where('auditable_id', $klienId)->where('action', 'deleted')->latest('id')->first();
+        $this->assertNotNull($deleted);
+        $this->assertSame('PT Audit Baru', $deleted->old_values['nama_klien'] ?? null);
     }
 
     public function test_audit_log_endpoint_is_restricted_to_admin_and_owner(): void
