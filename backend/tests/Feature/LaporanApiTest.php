@@ -296,4 +296,18 @@ class LaporanApiTest extends TestCase
         $this->assertStringStartsWith("\xEF\xBB\xBF", $jadwalContent);
         $this->assertStringContainsString('Tanggal Mulai', $jadwalContent);
     }
+
+    public function test_laporan_summary_empty_returns_default_values(): void
+    {
+        $this->actingAsAdmin();
+
+        $this->getJson('/api/v1/laporan/summary')
+            ->assertOk()
+            ->assertJsonPath('data.pemasukan', 0)
+            ->assertJsonPath('data.pengeluaran', 0)
+            ->assertJsonPath('data.saldo', 0)
+            ->assertJsonPath('data.laba_rugi', 0)
+            ->assertJsonPath('data.piutang', 0)
+            ->assertJsonPath('data.invoice_overdue', 0);
+    }
 }
