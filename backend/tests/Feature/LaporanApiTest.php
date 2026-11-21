@@ -120,8 +120,21 @@ class LaporanApiTest extends TestCase
 
         $response->assertOk();
         $response->assertHeader('content-type', 'text/csv; charset=UTF-8');
-        $this->assertStringContainsString('Nomor Invoice', $response->streamedContent());
-        $this->assertStringContainsString('INV-CSV-001', $response->streamedContent());
+        $content = $response->streamedContent();
+        $this->assertStringStartsWith("\xEF\xBB\xBF", $content);
+        $this->assertStringContainsString('Nomor Invoice', $content);
+        $this->assertStringContainsString('INV-CSV-001', $content);
+    }
+
+    public function test_laporan_invoices_csv_empty_still_returns_header(): void
+    {
+        $this->actingAsAdmin();
+
+        $response = $this->get('/api/v1/laporan/invoices.csv');
+        $response->assertOk()->assertHeader('content-type', 'text/csv; charset=UTF-8');
+        $content = $response->streamedContent();
+        $this->assertStringStartsWith("\xEF\xBB\xBF", $content);
+        $this->assertStringContainsString('Nomor Invoice', $content);
     }
 
     public function test_laporan_summary_includes_per_event_profit_and_loss(): void
