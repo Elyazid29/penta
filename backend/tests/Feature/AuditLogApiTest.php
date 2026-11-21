@@ -380,6 +380,20 @@ class AuditLogApiTest extends TestCase
             ->assertJsonStructure(['data', 'links', 'current_page', 'per_page', 'total']);
     }
 
+    public function test_audit_log_endpoint_returns_latest_first(): void
+    {
+        $this->actingAsRole('admin');
+        $first = MasterKlien::query()->create(['nama_klien' => 'PT Pertama']);
+        $second = MasterKlien::query()->create(['nama_klien' => 'PT Kedua']);
+
+        $response = $this->getJson('/api/v1/audit-logs?per_page=10')->assertOk();
+        $ids = collect($response->json('data'))->pluck('auditable_id')->all();
+
+        $this->assertContains($second->id, $ids);
+        $this->assertContains($first->id, $ids);
+        $this->assertLessThan(array_search($first->id, $ids, true), array_search($second->id, $ids, true));
+    }
+
     public function test_audit_log_skips_update_when_no_changes(): void
     {
         $this->actingAsRole('admin');
