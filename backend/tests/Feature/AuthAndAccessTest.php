@@ -53,6 +53,10 @@ class AuthAndAccessTest extends TestCase
         $this->getJson('/api/v1/auth/me')->assertUnauthorized();
         $this->getJson('/api/v1/dashboard')->assertUnauthorized();
         $this->getJson('/api/v1/laporan/summary')->assertUnauthorized();
+        $this->get('/api/v1/laporan/transactions.csv')->assertUnauthorized();
+        $this->get('/api/v1/laporan/invoices.csv')->assertUnauthorized();
+        $this->get('/api/v1/laporan/surat-jalan.csv')->assertUnauthorized();
+        $this->get('/api/v1/laporan/jadwal-operasional.csv')->assertUnauthorized();
         $this->getJson('/api/v1/master-barang')->assertUnauthorized();
     }
 
