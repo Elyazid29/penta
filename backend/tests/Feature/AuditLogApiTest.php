@@ -10,6 +10,7 @@ use App\Models\MasterArmada;
 use App\Models\MasterBarang;
 use App\Models\MasterKaryawan;
 use App\Models\MasterKlien;
+use App\Models\MasterPaket;
 use App\Models\MasterPerusahaan;
 use App\Models\Role;
 use App\Models\SuratJalan;
@@ -314,6 +315,25 @@ class AuditLogApiTest extends TestCase
             'action' => 'created',
             'auditable_type' => MasterKaryawan::class,
             'auditable_id' => $karyawan->id,
+        ]);
+    }
+
+    public function test_master_paket_changes_are_audited(): void
+    {
+        $admin = $this->actingAsRole('admin');
+        $paket = MasterPaket::query()->create([
+            'kode_paket' => 'PKT-AUD-001',
+            'nama_paket' => 'Paket Audit',
+            'kategori' => 'Paket',
+            'harga_paket' => 500000,
+            'satuan' => 'paket',
+        ]);
+
+        $this->assertDatabaseHas('audit_logs', [
+            'user_id' => $admin->id,
+            'action' => 'created',
+            'auditable_type' => MasterPaket::class,
+            'auditable_id' => $paket->id,
         ]);
     }
 
