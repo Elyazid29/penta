@@ -79,6 +79,20 @@ class AuditLogApiTest extends TestCase
         $this->assertNotNull($response->json('data.0.user'));
     }
 
+    public function test_user_model_changes_are_audited(): void
+    {
+        $admin = $this->actingAsRole('admin');
+        $role = Role::query()->where('name', 'teknisi')->firstOrFail();
+        $user = User::factory()->create(['role_id' => $role->id, 'name' => 'Teknisi Audit']);
+
+        $this->assertDatabaseHas('audit_logs', [
+            'user_id' => $admin->id,
+            'action' => 'created',
+            'auditable_type' => User::class,
+            'auditable_id' => $user->id,
+        ]);
+    }
+
     private function actingAsRole(string $roleName): User
     {
         $role = Role::query()->where('name', $roleName)->firstOrFail();
