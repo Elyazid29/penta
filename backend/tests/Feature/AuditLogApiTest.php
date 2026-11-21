@@ -8,6 +8,7 @@ use App\Models\Invoice;
 use App\Models\JadwalOperasional;
 use App\Models\MasterBarang;
 use App\Models\MasterKlien;
+use App\Models\MasterPerusahaan;
 use App\Models\Role;
 use App\Models\SuratJalan;
 use App\Models\TransaksiKeuangan;
@@ -257,6 +258,24 @@ class AuditLogApiTest extends TestCase
             'action' => 'created',
             'auditable_type' => JadwalOperasional::class,
             'auditable_id' => $jadwal->id,
+        ]);
+    }
+
+    public function test_master_perusahaan_changes_are_audited(): void
+    {
+        $admin = $this->actingAsRole('admin');
+        $perusahaan = MasterPerusahaan::query()->create([
+            'nama_perusahaan' => 'PT Audit Perusahaan',
+            'alamat' => 'Jakarta',
+            'telepon' => '021000000',
+            'email' => 'audit@perusahaan.test',
+        ]);
+
+        $this->assertDatabaseHas('audit_logs', [
+            'user_id' => $admin->id,
+            'action' => 'created',
+            'auditable_type' => MasterPerusahaan::class,
+            'auditable_id' => $perusahaan->id,
         ]);
     }
 
