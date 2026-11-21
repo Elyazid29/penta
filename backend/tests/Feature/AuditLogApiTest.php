@@ -404,6 +404,18 @@ class AuditLogApiTest extends TestCase
             ->assertJsonCount(0, 'data');
     }
 
+    public function test_audit_log_endpoint_respects_per_page(): void
+    {
+        $this->actingAsRole('admin');
+        MasterKlien::query()->create(['nama_klien' => 'PT A']);
+        MasterKlien::query()->create(['nama_klien' => 'PT B']);
+
+        $this->getJson('/api/v1/audit-logs?per_page=1')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('per_page', 1);
+    }
+
     public function test_audit_log_skips_update_when_no_changes(): void
     {
         $this->actingAsRole('admin');
