@@ -8,6 +8,7 @@ use App\Models\Invoice;
 use App\Models\MasterBarang;
 use App\Models\MasterKlien;
 use App\Models\Role;
+use App\Models\SuratJalan;
 use App\Models\TransaksiKeuangan;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -198,6 +199,34 @@ class AuditLogApiTest extends TestCase
             'action' => 'created',
             'auditable_type' => FormOrder::class,
             'auditable_id' => $order->id,
+        ]);
+    }
+
+    public function test_surat_jalan_changes_are_audited(): void
+    {
+        $admin = $this->actingAsRole('admin');
+        $klien = MasterKlien::query()->create(['nama_klien' => 'PT SJ Audit']);
+        $order = FormOrder::query()->create([
+            'nomor_order' => 'ORD-AUD-SJ-001',
+            'klien_id' => $klien->id,
+            'nama_event' => 'Event',
+            'venue' => 'Jakarta',
+            'load_in' => now(),
+            'load_out' => now()->addDay(),
+            'status' => 'Draft',
+        ]);
+        $sj = SuratJalan::query()->create([
+            'nomor_surat_jalan' => 'SJ-AUD-001',
+            'form_order_id' => $order->id,
+            'tanggal_berangkat' => now(),
+            'status' => 'Draft',
+        ]);
+
+        $this->assertDatabaseHas('audit_logs', [
+            'user_id' => $admin->id,
+            'action' => 'created',
+            'auditable_type' => SuratJalan::class,
+            'auditable_id' => $sj->id,
         ]);
     }
 
