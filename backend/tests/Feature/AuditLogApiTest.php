@@ -8,6 +8,7 @@ use App\Models\Invoice;
 use App\Models\MasterBarang;
 use App\Models\MasterKlien;
 use App\Models\Role;
+use App\Models\TransaksiKeuangan;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
@@ -157,6 +158,24 @@ class AuditLogApiTest extends TestCase
             'action' => 'created',
             'auditable_type' => Invoice::class,
             'auditable_id' => $invoice->id,
+        ]);
+    }
+
+    public function test_transaksi_keuangan_changes_are_audited(): void
+    {
+        $admin = $this->actingAsRole('admin');
+        $trx = TransaksiKeuangan::query()->create([
+            'tanggal' => '2026-11-10',
+            'jenis' => 'Pemasukan',
+            'kategori' => 'DP',
+            'jumlah' => 100000,
+        ]);
+
+        $this->assertDatabaseHas('audit_logs', [
+            'user_id' => $admin->id,
+            'action' => 'created',
+            'auditable_type' => TransaksiKeuangan::class,
+            'auditable_id' => $trx->id,
         ]);
     }
 
