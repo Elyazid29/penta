@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\FormOrder;
 use App\Models\Invoice;
 use App\Models\JadwalOperasional;
+use App\Models\MasterBarang;
 use App\Models\MasterKlien;
 use App\Models\Role;
 use App\Models\SuratJalan;
@@ -315,5 +316,33 @@ class LaporanApiTest extends TestCase
             ->assertJsonPath('data.per_event', [])
             ->assertJsonPath('data.pemasukan_per_kategori', [])
             ->assertJsonPath('data.pengeluaran_per_kategori', []);
+    }
+
+    public function test_laporan_summary_counts_operational_entities(): void
+    {
+        $this->actingAsAdmin();
+        $klien = MasterKlien::query()->create(['nama_klien' => 'PT Count']);
+        FormOrder::query()->create([
+            'nomor_order' => 'ORD-CNT-001',
+            'klien_id' => $klien->id,
+            'nama_event' => 'Event',
+            'venue' => 'Jakarta',
+            'load_in' => now(),
+            'load_out' => now()->addDay(),
+            'status' => 'Draft',
+        ]);
+        MasterBarang::query()->create([
+            'kode_barang' => 'BRG-CNT-001',
+            'nama_barang' => 'Kamera',
+            'kategori' => 'Kamera',
+            'satuan' => 'unit',
+            'harga_sewa' => 100000,
+            'stok_total' => 1,
+        ]);
+
+        $this->getJson('/api/v1/laporan/summary')
+            ->assertOk()
+            ->assertJsonPath('data.orders', 1)
+            ->assertJsonPath('data.barang', 1);
     }
 }
