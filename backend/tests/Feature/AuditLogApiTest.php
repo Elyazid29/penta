@@ -6,6 +6,7 @@ use App\Models\AuditLog;
 use App\Models\FormOrder;
 use App\Models\Invoice;
 use App\Models\JadwalOperasional;
+use App\Models\MasterArmada;
 use App\Models\MasterBarang;
 use App\Models\MasterKlien;
 use App\Models\MasterPerusahaan;
@@ -276,6 +277,25 @@ class AuditLogApiTest extends TestCase
             'action' => 'created',
             'auditable_type' => MasterPerusahaan::class,
             'auditable_id' => $perusahaan->id,
+        ]);
+    }
+
+    public function test_master_armada_changes_are_audited(): void
+    {
+        $admin = $this->actingAsRole('admin');
+        $armada = MasterArmada::query()->create([
+            'jenis_kendaraan' => 'Van',
+            'plat_nomor' => 'B 1234 AUD',
+            'status_stnk' => 'Aktif',
+            'driver' => 'Driver',
+            'status_operasional' => 'Siap',
+        ]);
+
+        $this->assertDatabaseHas('audit_logs', [
+            'user_id' => $admin->id,
+            'action' => 'created',
+            'auditable_type' => MasterArmada::class,
+            'auditable_id' => $armada->id,
         ]);
     }
 
