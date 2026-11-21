@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\AuditLog;
 use App\Models\FormOrder;
+use App\Models\FormPenawaran;
 use App\Models\Invoice;
 use App\Models\JadwalOperasional;
 use App\Models\MasterArmada;
@@ -334,6 +335,38 @@ class AuditLogApiTest extends TestCase
             'action' => 'created',
             'auditable_type' => MasterPaket::class,
             'auditable_id' => $paket->id,
+        ]);
+    }
+
+    public function test_form_penawaran_changes_are_audited(): void
+    {
+        $admin = $this->actingAsRole('admin');
+        $klien = MasterKlien::query()->create(['nama_klien' => 'PT Penawaran Audit']);
+        $order = FormOrder::query()->create([
+            'nomor_order' => 'ORD-AUD-PNW-001',
+            'klien_id' => $klien->id,
+            'nama_event' => 'Event',
+            'venue' => 'Jakarta',
+            'load_in' => now(),
+            'load_out' => now()->addDay(),
+            'status' => 'Draft',
+        ]);
+        $penawaran = FormPenawaran::query()->create([
+            'nomor_penawaran' => 'PNW-AUD-001',
+            'form_order_id' => $order->id,
+            'tanggal_penawaran' => '2026-11-10',
+            'status' => 'Draft',
+            'subtotal' => 100000,
+            'diskon' => 0,
+            'pajak' => 0,
+            'total' => 100000,
+        ]);
+
+        $this->assertDatabaseHas('audit_logs', [
+            'user_id' => $admin->id,
+            'action' => 'created',
+            'auditable_type' => FormPenawaran::class,
+            'auditable_id' => $penawaran->id,
         ]);
     }
 
