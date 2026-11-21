@@ -103,6 +103,18 @@ class AuditLogApiTest extends TestCase
             ->assertJsonStructure(['data', 'links', 'current_page', 'per_page', 'total']);
     }
 
+    public function test_audit_log_skips_update_when_no_changes(): void
+    {
+        $this->actingAsRole('admin');
+        $klien = MasterKlien::query()->create(['nama_klien' => 'PT Sama']);
+        $before = AuditLog::query()->where('auditable_type', MasterKlien::class)->where('auditable_id', $klien->id)->where('action', 'updated')->count();
+
+        $klien->update(['nama_klien' => 'PT Sama']);
+
+        $after = AuditLog::query()->where('auditable_type', MasterKlien::class)->where('auditable_id', $klien->id)->where('action', 'updated')->count();
+        $this->assertSame($before, $after);
+    }
+
     private function actingAsRole(string $roleName): User
     {
         $role = Role::query()->where('name', $roleName)->firstOrFail();
