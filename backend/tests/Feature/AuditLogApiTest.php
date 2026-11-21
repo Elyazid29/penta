@@ -71,10 +71,12 @@ class AuditLogApiTest extends TestCase
         $klien = MasterKlien::query()->create(['nama_klien' => 'PT Filter']);
         $klien->update(['nama_klien' => 'PT Filter Updated']);
 
-        $this->getJson('/api/v1/audit-logs?action=updated&auditable_type='.urlencode(MasterKlien::class))
+        $response = $this->getJson('/api/v1/audit-logs?action=updated&auditable_type='.urlencode(MasterKlien::class))
             ->assertOk()
             ->assertJsonPath('data.0.action', 'updated')
             ->assertJsonPath('data.0.auditable_type', MasterKlien::class);
+
+        $this->assertNotNull($response->json('data.0.user'));
     }
 
     private function actingAsRole(string $roleName): User
