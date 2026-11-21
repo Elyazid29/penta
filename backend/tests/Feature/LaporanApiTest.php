@@ -308,6 +308,9 @@ class LaporanApiTest extends TestCase
             ->assertJsonPath('data.saldo', 0)
             ->assertJsonPath('data.laba_rugi', 0)
             ->assertJsonPath('data.piutang', 0)
-            ->assertJsonPath('data.invoice_overdue', 0);
+            ->assertJsonPath('data.invoice_overdue', 0)
+            ->assertJsonPath('data.per_event', [])
+            ->assertJsonPath('data.pemasukan_per_kategori', [])
+            ->assertJsonPath('data.pengeluaran_per_kategori', []);
     }
 }
