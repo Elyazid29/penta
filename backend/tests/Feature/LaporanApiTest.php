@@ -303,6 +303,9 @@ class LaporanApiTest extends TestCase
 
         $this->getJson('/api/v1/laporan/summary')
             ->assertOk()
+            ->assertJsonPath('data.orders', 0)
+            ->assertJsonPath('data.invoices', 0)
+            ->assertJsonPath('data.barang', 0)
             ->assertJsonPath('data.pemasukan', 0)
             ->assertJsonPath('data.pengeluaran', 0)
             ->assertJsonPath('data.saldo', 0)
