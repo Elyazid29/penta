@@ -84,6 +84,10 @@ class AuditLogApiTest extends TestCase
         $this->getJson('/api/v1/audit-logs?action=created')
             ->assertOk()
             ->assertJsonPath('data.0.action', 'created');
+
+        $this->getJson('/api/v1/audit-logs?auditable_type='.urlencode(MasterKlien::class))
+            ->assertOk()
+            ->assertJsonPath('data.0.auditable_type', MasterKlien::class);
     }
 
     public function test_user_model_changes_are_audited(): void
