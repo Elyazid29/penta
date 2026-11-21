@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\AuditLog;
 use App\Models\FormOrder;
 use App\Models\Invoice;
+use App\Models\JadwalOperasional;
 use App\Models\MasterBarang;
 use App\Models\MasterKlien;
 use App\Models\Role;
@@ -227,6 +228,35 @@ class AuditLogApiTest extends TestCase
             'action' => 'created',
             'auditable_type' => SuratJalan::class,
             'auditable_id' => $sj->id,
+        ]);
+    }
+
+    public function test_jadwal_operasional_changes_are_audited(): void
+    {
+        $admin = $this->actingAsRole('admin');
+        $klien = MasterKlien::query()->create(['nama_klien' => 'PT Jadwal Audit']);
+        $order = FormOrder::query()->create([
+            'nomor_order' => 'ORD-AUD-JAD-001',
+            'klien_id' => $klien->id,
+            'nama_event' => 'Event',
+            'venue' => 'Jakarta',
+            'load_in' => now(),
+            'load_out' => now()->addDay(),
+            'status' => 'Draft',
+        ]);
+        $jadwal = JadwalOperasional::query()->create([
+            'form_order_id' => $order->id,
+            'tanggal_mulai' => '2026-11-20 08:00:00',
+            'tanggal_selesai' => '2026-11-20 17:00:00',
+            'status' => 'Terjadwal',
+            'jobdesk' => 'Setup',
+        ]);
+
+        $this->assertDatabaseHas('audit_logs', [
+            'user_id' => $admin->id,
+            'action' => 'created',
+            'auditable_type' => JadwalOperasional::class,
+            'auditable_id' => $jadwal->id,
         ]);
     }
 
