@@ -322,7 +322,7 @@ class LaporanApiTest extends TestCase
     {
         $this->actingAsAdmin();
         $klien = MasterKlien::query()->create(['nama_klien' => 'PT Count']);
-        FormOrder::query()->create([
+        $order = FormOrder::query()->create([
             'nomor_order' => 'ORD-CNT-001',
             'klien_id' => $klien->id,
             'nama_event' => 'Event',
@@ -339,10 +339,22 @@ class LaporanApiTest extends TestCase
             'harga_sewa' => 100000,
             'stok_total' => 1,
         ]);
+        Invoice::query()->create([
+            'nomor_invoice' => 'INV-CNT-001',
+            'form_order_id' => $order->id,
+            'tanggal_invoice' => '2026-11-10',
+            'subtotal' => 100000,
+            'diskon' => 0,
+            'pajak' => 0,
+            'total' => 100000,
+            'dibayar' => 0,
+            'status' => 'Unpaid',
+        ]);
 
         $this->getJson('/api/v1/laporan/summary')
             ->assertOk()
             ->assertJsonPath('data.orders', 1)
-            ->assertJsonPath('data.barang', 1);
+            ->assertJsonPath('data.barang', 1)
+            ->assertJsonPath('data.invoices', 1);
     }
 }
