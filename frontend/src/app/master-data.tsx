@@ -263,6 +263,7 @@ export default function App() {
   const [financeForm, setFinanceForm] = useState({ invoice_id: "", form_order_id: "", tanggal: new Date().toISOString().slice(0, 10), jenis: "Pemasukan", kategori: "Pembayaran Klien", jumlah: 0, metode: "Transfer", referensi: "", keterangan: "" });
   const [reportSummary, setReportSummary] = useState<Record<string, any>>({});
   const [auditLogs, setAuditLogs] = useState<MasterItem[]>([]);
+  const [auditFilters, setAuditFilters] = useState({ action: "", auditable_type: "" });
   const [users, setUsers] = useState<MasterItem[]>([]);
   const [roles, setRoles] = useState<Array<{ id: number; name: string; display_name: string }>>([]);
   const [userForm, setUserForm] = useState({ name: "", email: "", password: "", role_id: "" });
@@ -593,8 +594,21 @@ export default function App() {
     setLoading(true); setError(""); try { const response = await request("laporan/summary"); const payload = await response.json(); if (!response.ok) throw new Error(payload?.message || "Gagal memuat laporan."); setReportSummary(payload.data || {}); } catch (cause) { setError(cause instanceof Error ? cause.message : "Gagal memuat laporan."); } finally { setLoading(false); }
   }
 
-  async function loadAuditLogs(): Promise<void> {
-    setLoading(true); setError(""); try { const response = await request("audit-logs?per_page=100"); const payload = await response.json(); if (!response.ok) throw new Error(payload?.message || "Gagal memuat audit log."); setAuditLogs(resourceData<MasterItem>(payload)); } catch (cause) { setError(cause instanceof Error ? cause.message : "Gagal memuat audit log."); } finally { setLoading(false); }
+  async function loadAuditLogs(filters = auditFilters): Promise<void> {
+    setLoading(true); setError("");
+    try {
+      const params = new URLSearchParams({ per_page: "100" });
+      if (filters.action) params.set("action", filters.action);
+      if (filters.auditable_type) params.set("auditable_type", filters.auditable_type);
+      const response = await request(`audit-logs?${params.toString()}`);
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload?.message || "Gagal memuat audit log.");
+      setAuditLogs(resourceData<MasterItem>(payload));
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Gagal memuat audit log.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function downloadTransactionsCsv(): Promise<void> {
@@ -2153,26 +2167,36 @@ export default function App() {
           )}
           {activeMenu === "AUDIT_LOG" && (
             <section className="space-y-5">
-              <div><h2 className="text-xl font-bold text-slate-900">Audit Log</h2><p className="mt-1 text-sm text-slate-500">Riwayat perubahan data penting (siapa, aksi, objek, waktu).</p></div>
+              <div><h2 className="text-xl font-bold text-slate-900">Audit Log</h2><p className="mt-1 text-sm text-slate-500">Riwayat perubahan data penting (siapa, aksi, objek, waktu, detail).</p></div>
               {error && <div className="rounded bg-red-50 p-3 text-sm text-red-800">{error}</div>}
+              <div className="flex flex-wrap gap-3 rounded-xl bg-white p-4 shadow-sm">
+                <select value={auditFilters.action} onChange={(e) => setAuditFilters({ ...auditFilters, action: e.target.value })} className="rounded border border-slate-300 px-3 py-2 text-sm"><option value="">Semua aksi</option><option value="created">created</option><option value="updated">updated</option><option value="deleted">deleted</option></select>
+                <input value={auditFilters.auditable_type} onChange={(e) => setAuditFilters({ ...auditFilters, auditable_type: e.target.value })} placeholder="Filter tipe objek (mis. MasterKlien)" className="min-w-[260px] rounded border border-slate-300 px-3 py-2 text-sm" />
+                <button type="button" onClick={() => void loadAuditLogs()} className="rounded bg-blue-600 px-4 py-2 text-sm font-semibold text-white">Terapkan</button>
+                <button type="button" onClick={() => { const reset = { action: "", auditable_type: "" }; setAuditFilters(reset); void loadAuditLogs(reset); }} className="rounded border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">Reset</button>
+              </div>
               <div className="overflow-auto rounded-xl border border-slate-200 bg-white shadow-sm">
                 <table className="w-full text-left text-sm">
-                  <thead className="bg-[#002480] text-white"><tr><th className="p-3">Waktu</th><th className="p-3">User</th><th className="p-3">Aksi</th><th className="p-3">Objek</th><th className="p-3">ID</th></tr></thead>
+                  <thead className="bg-[#002480] text-white"><tr><th className="p-3">Waktu</th><th className="p-3">User</th><th className="p-3">Aksi</th><th className="p-3">Objek</th><th className="p-3">ID</th><th className="p-3">Detail</th></tr></thead>
                   <tbody className="divide-y divide-slate-100">
                     {auditLogs.length > 0 ? auditLogs.map((log) => {
                       const u = log.user as Record<string, unknown> | undefined;
                       const type = String(log.auditable_type || "");
                       const shortType = type.includes("\\") ? type.split("\\").pop() : type;
+                      const oldVals = (log.old_values || {}) as Record<string, unknown>;
+                      const newVals = (log.new_values || {}) as Record<string, unknown>;
+                      const keys = Array.from(new Set([...Object.keys(oldVals), ...Object.keys(newVals)])).filter((k) => k !== "updated_at");
                       return (
-                        <tr key={String(log.id)}>
+                        <tr key={String(log.id)} className="align-top">
                           <td className="p-3 whitespace-nowrap">{String(log.created_at || "-")}</td>
                           <td className="p-3">{String(u?.name || u?.email || "-")}</td>
                           <td className="p-3">{String(log.action || "-")}</td>
                           <td className="p-3">{String(shortType || "-")}</td>
                           <td className="p-3">{String(log.auditable_id ?? "-")}</td>
+                          <td className="p-3 text-xs text-slate-600"><details><summary className="cursor-pointer font-medium text-blue-700">Lihat</summary><div className="mt-2 max-w-xl space-y-1">{keys.length ? keys.slice(0, 12).map((k) => <div key={k}><span className="font-medium">{k}:</span> {JSON.stringify(oldVals[k] ?? null)} → {JSON.stringify(newVals[k] ?? null)}</div>) : <div>-</div>}</div></details></td>
                         </tr>
                       );
-                    }) : <tr><td colSpan={5} className="p-6 text-center text-slate-500">Belum ada data audit log.</td></tr>}
+                    }) : <tr><td colSpan={6} className="p-6 text-center text-slate-500">Belum ada data audit log.</td></tr>}
                   </tbody>
                 </table>
               </div>

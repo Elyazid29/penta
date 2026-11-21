@@ -47,7 +47,7 @@
 - [ ] Perluasan cakupan test (edge case modul lain lanjutan)
 - [x] Deteksi & uji konflik penjadwalan crew/armada (tes API)
 - [ ] Uji perangkat mobile & skenario offline
-- [x] Audit log dasar: pencatatan create/update/delete model utama (`audit_logs`), endpoint & tampilan riwayat untuk admin/owner
+- [x] Audit log dasar: pencatatan create/update/delete model utama (`audit_logs`), endpoint & tampilan riwayat admin/owner (filter aksi/tipe objek, detail perubahan)
 - [ ] Deploy produksi (menunggu hosting/infrastruktur) — ikuti `docs/DEPLOYMENT.md`
 
 ## Catatan / keputusan terbuka
