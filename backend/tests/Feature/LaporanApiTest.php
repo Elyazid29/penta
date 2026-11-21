@@ -266,4 +266,21 @@ class LaporanApiTest extends TestCase
         $this->assertStringStartsWith("\xEF\xBB\xBF", $content);
         $this->assertStringContainsString('Tanggal', $content);
     }
+
+    public function test_laporan_operasional_csv_empty_still_returns_headers(): void
+    {
+        $this->actingAsAdmin();
+
+        $sj = $this->get('/api/v1/laporan/surat-jalan.csv');
+        $sj->assertOk()->assertHeader('content-type', 'text/csv; charset=UTF-8');
+        $sjContent = $sj->streamedContent();
+        $this->assertStringStartsWith("\xEF\xBB\xBF", $sjContent);
+        $this->assertStringContainsString('Nomor Surat Jalan', $sjContent);
+
+        $jadwal = $this->get('/api/v1/laporan/jadwal-operasional.csv');
+        $jadwal->assertOk()->assertHeader('content-type', 'text/csv; charset=UTF-8');
+        $jadwalContent = $jadwal->streamedContent();
+        $this->assertStringStartsWith("\xEF\xBB\xBF", $jadwalContent);
+        $this->assertStringContainsString('Tanggal Mulai', $jadwalContent);
+    }
 }
