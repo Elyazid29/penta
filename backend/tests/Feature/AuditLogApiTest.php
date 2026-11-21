@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\AuditLog;
+use App\Models\FormOrder;
+use App\Models\Invoice;
 use App\Models\MasterBarang;
 use App\Models\MasterKlien;
 use App\Models\Role;
@@ -122,6 +124,39 @@ class AuditLogApiTest extends TestCase
             'action' => 'created',
             'auditable_type' => MasterBarang::class,
             'auditable_id' => $barang->id,
+        ]);
+    }
+
+    public function test_invoice_changes_are_audited(): void
+    {
+        $admin = $this->actingAsRole('admin');
+        $klien = MasterKlien::query()->create(['nama_klien' => 'PT Invoice Audit']);
+        $order = FormOrder::query()->create([
+            'nomor_order' => 'ORD-AUD-INV-001',
+            'klien_id' => $klien->id,
+            'nama_event' => 'Event',
+            'venue' => 'Jakarta',
+            'load_in' => now(),
+            'load_out' => now()->addDay(),
+            'status' => 'Draft',
+        ]);
+        $invoice = Invoice::query()->create([
+            'nomor_invoice' => 'INV-AUD-001',
+            'form_order_id' => $order->id,
+            'tanggal_invoice' => '2026-11-10',
+            'subtotal' => 100000,
+            'diskon' => 0,
+            'pajak' => 0,
+            'total' => 100000,
+            'dibayar' => 0,
+            'status' => 'Unpaid',
+        ]);
+
+        $this->assertDatabaseHas('audit_logs', [
+            'user_id' => $admin->id,
+            'action' => 'created',
+            'auditable_type' => Invoice::class,
+            'auditable_id' => $invoice->id,
         ]);
     }
 
