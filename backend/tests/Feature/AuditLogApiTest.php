@@ -93,6 +93,16 @@ class AuditLogApiTest extends TestCase
         ]);
     }
 
+    public function test_audit_log_endpoint_returns_paginated_structure(): void
+    {
+        $this->actingAsRole('admin');
+        MasterKlien::query()->create(['nama_klien' => 'PT Paging']);
+
+        $this->getJson('/api/v1/audit-logs?per_page=10')
+            ->assertOk()
+            ->assertJsonStructure(['data', 'links', 'current_page', 'per_page', 'total']);
+    }
+
     private function actingAsRole(string $roleName): User
     {
         $role = Role::query()->where('name', $roleName)->firstOrFail();
