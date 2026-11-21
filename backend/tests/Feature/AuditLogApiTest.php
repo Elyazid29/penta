@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\AuditLog;
+use App\Models\MasterBarang;
 use App\Models\MasterKlien;
 use App\Models\Role;
 use App\Models\User;
@@ -101,6 +102,26 @@ class AuditLogApiTest extends TestCase
             'action' => 'created',
             'auditable_type' => User::class,
             'auditable_id' => $user->id,
+        ]);
+    }
+
+    public function test_master_barang_changes_are_audited(): void
+    {
+        $admin = $this->actingAsRole('admin');
+        $barang = MasterBarang::query()->create([
+            'kode_barang' => 'BRG-AUD-001',
+            'nama_barang' => 'Barang Audit',
+            'kategori' => 'Kamera',
+            'satuan' => 'unit',
+            'harga_sewa' => 10000,
+            'stok_total' => 1,
+        ]);
+
+        $this->assertDatabaseHas('audit_logs', [
+            'user_id' => $admin->id,
+            'action' => 'created',
+            'auditable_type' => MasterBarang::class,
+            'auditable_id' => $barang->id,
         ]);
     }
 
