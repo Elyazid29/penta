@@ -8,6 +8,7 @@ use App\Models\Invoice;
 use App\Models\JadwalOperasional;
 use App\Models\MasterArmada;
 use App\Models\MasterBarang;
+use App\Models\MasterKaryawan;
 use App\Models\MasterKlien;
 use App\Models\MasterPerusahaan;
 use App\Models\Role;
@@ -296,6 +297,23 @@ class AuditLogApiTest extends TestCase
             'action' => 'created',
             'auditable_type' => MasterArmada::class,
             'auditable_id' => $armada->id,
+        ]);
+    }
+
+    public function test_master_karyawan_changes_are_audited(): void
+    {
+        $admin = $this->actingAsRole('admin');
+        $karyawan = MasterKaryawan::query()->create([
+            'nama_lengkap' => 'Karyawan Audit',
+            'jabatan' => 'Teknisi',
+            'status' => 'Aktif',
+        ]);
+
+        $this->assertDatabaseHas('audit_logs', [
+            'user_id' => $admin->id,
+            'action' => 'created',
+            'auditable_type' => MasterKaryawan::class,
+            'auditable_id' => $karyawan->id,
         ]);
     }
 
