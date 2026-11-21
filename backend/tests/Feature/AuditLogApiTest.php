@@ -53,6 +53,8 @@ class AuditLogApiTest extends TestCase
 
     public function test_audit_log_endpoint_is_restricted_to_admin_and_owner(): void
     {
+        $this->getJson('/api/v1/audit-logs')->assertUnauthorized();
+
         $this->actingAsRole('teknisi');
         $this->getJson('/api/v1/audit-logs')->assertForbidden();
 

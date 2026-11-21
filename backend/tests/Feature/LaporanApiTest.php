@@ -222,6 +222,9 @@ class LaporanApiTest extends TestCase
 
         $this->getJson('/api/v1/laporan/summary')->assertOk()->assertJsonStructure(['data']);
         $this->get('/api/v1/laporan/transactions.csv')->assertOk();
+        $this->get('/api/v1/laporan/invoices.csv')->assertOk();
+        $this->get('/api/v1/laporan/surat-jalan.csv')->assertOk();
+        $this->get('/api/v1/laporan/jadwal-operasional.csv')->assertOk();
     }
 
     public function test_laporan_transactions_csv_contains_order_id_and_bom(): void
