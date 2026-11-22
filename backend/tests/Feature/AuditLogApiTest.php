@@ -114,6 +114,14 @@ class AuditLogApiTest extends TestCase
             'auditable_type' => User::class,
             'auditable_id' => $user->id,
         ]);
+
+        $user->update(['name' => 'Teknisi Audit Updated']);
+        $this->assertDatabaseHas('audit_logs', [
+            'user_id' => $admin->id,
+            'action' => 'updated',
+            'auditable_type' => User::class,
+            'auditable_id' => $user->id,
+        ]);
     }
 
     public function test_master_barang_changes_are_audited(): void
